@@ -1517,6 +1517,15 @@ requestAnimationFrame(frame);
 
 // expose for debugging / tuning
 window.TERMINUS = { P, get humans(){return humans}, get machines(){return machines}, scrapPct, seedWorld, hist:()=>hist, adapt:()=>adaptLvl };
+
+/* analytics — only on the deployed site, so local dev never counts itself */
+if (location.hostname.endsWith("github.io")) {
+  const s = document.createElement("script");
+  s.dataset.goatcounter = "https://thoughtcrimegpt.goatcounter.com/count";
+  s.async = true;
+  s.src = "https://gc.zgo.at/count.js";
+  document.head.appendChild(s);
+}
 </script>
 </body>
 </html>
