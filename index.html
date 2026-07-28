@@ -1,0 +1,1522 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>TERMINUS — a living predator-prey ecosystem</title>
+<meta name="description" content="A post-singularity predator-prey simulation. Scrap feeds survivors. Survivors feed the machines.">
+<meta name="theme-color" content="#05070a">
+<meta property="og:title" content="TERMINUS">
+<meta property="og:description" content="A live post-singularity ecosystem. The machines hunt. The humans run. Nothing is scripted.">
+<meta property="og:type" content="website">
+<!-- og:image needs an absolute URL — add https://<pages-domain>/terminus/og.png once deployed -->
+<meta name="twitter:card" content="summary">
+<meta name="twitter:title" content="TERMINUS">
+<meta name="twitter:description" content="A live post-singularity ecosystem. The machines hunt. The humans run. Nothing is scripted.">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Crect width='16' height='16' rx='3' fill='%2305070a'/%3E%3Cpath d='M8 2.4 14.2 13H1.8z' fill='%23ff2d46'/%3E%3Ccircle cx='8' cy='9.6' r='1.4' fill='%2305070a'/%3E%3C/svg%3E">
+<style>
+:root{
+  --bg:#05070a;
+  --stage:#080b10;
+  --panel:#0b0f15;
+  --line:#161d27;
+  --line-soft:#111823;
+  --txt:#e6edf3;
+  --dim:#7b8794;
+  --dimmer:#4a545f;
+  --teal:#35c9ae;
+  --teal-dim:#1c6d6b;
+  --warm:#ffd7a3;
+  --hot:#ff9166;
+  --red:#ff2d46;
+  --red-dim:#8c1524;
+  --mono:ui-monospace,"SF Mono",SFMono-Regular,Menlo,Consolas,monospace;
+  --sans:"Inter",-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+html,body{height:100%}
+body{
+  background:var(--bg);
+  color:var(--txt);
+  font-family:var(--sans);
+  overflow:hidden;
+  -webkit-font-smoothing:antialiased;
+}
+body::before{
+  content:"";position:fixed;inset:0;pointer-events:none;z-index:0;
+  background:
+    radial-gradient(900px 500px at 12% -10%, rgba(53,201,174,.09), transparent 70%),
+    radial-gradient(800px 500px at 92% 8%, rgba(255,45,70,.07), transparent 70%);
+}
+.app{position:relative;z-index:1;height:100%;display:flex;flex-direction:column;padding:14px;gap:12px}
+
+/* ---------- header ---------- */
+header{display:flex;align-items:center;gap:16px;flex-wrap:wrap}
+.brand{display:flex;align-items:center;gap:12px;min-width:0}
+.mark{
+  width:44px;height:44px;border-radius:12px;flex:none;
+  background:linear-gradient(150deg,#0f2b2c,#0a1218);
+  border:1px solid #1d3b3a;
+  display:grid;place-items:center;
+  box-shadow:0 0 26px rgba(53,201,174,.15) inset;
+}
+.mark svg{width:24px;height:24px}
+h1{
+  font-size:26px;font-weight:650;letter-spacing:.34em;line-height:1;
+  background:linear-gradient(92deg,#fff,#a9e6d9 70%);
+  -webkit-background-clip:text;background-clip:text;color:transparent;
+}
+.tag{font-size:11.5px;color:var(--dim);margin-top:6px;letter-spacing:.02em}
+.tag b{color:var(--warm);font-weight:500}
+.tag i{color:var(--red);font-style:normal}
+.tag s{color:var(--teal);text-decoration:none}
+
+.stats{display:flex;gap:8px;margin-left:auto;flex-wrap:wrap}
+.stat{
+  background:var(--panel);border:1px solid var(--line);border-radius:11px;
+  padding:8px 13px;min-width:78px;text-align:left;
+}
+.stat .v{font-family:var(--mono);font-size:19px;font-weight:600;line-height:1.1;letter-spacing:-.02em;display:flex;align-items:center;gap:6px}
+.stat .k{font-size:9px;letter-spacing:.16em;color:var(--dimmer);margin-top:3px}
+.dot{width:7px;height:7px;border-radius:50%;flex:none}
+.dot.h{background:var(--warm);box-shadow:0 0 8px rgba(255,215,163,.6)}
+.dot.m{background:var(--red);box-shadow:0 0 8px rgba(255,45,70,.6)}
+.dot.s{background:var(--teal);box-shadow:0 0 8px rgba(53,201,174,.6)}
+
+/* ---------- layout ---------- */
+main{flex:1;display:flex;gap:12px;min-height:0}
+.stage{
+  position:relative;flex:1;min-width:0;border-radius:14px;overflow:hidden;
+  background:var(--stage);border:1px solid var(--line);
+  box-shadow:0 20px 60px rgba(0,0,0,.5);
+}
+#world{display:block;width:100%;height:100%;cursor:crosshair;touch-action:none}
+
+.badges{position:absolute;top:10px;right:10px;display:flex;gap:6px;pointer-events:none}
+.badge{
+  background:rgba(8,11,16,.82);border:1px solid var(--line);border-radius:8px;
+  padding:5px 9px;font-size:10.5px;font-family:var(--mono);color:var(--dim);
+  display:flex;align-items:center;gap:5px;backdrop-filter:blur(8px);
+}
+.badge .up{color:var(--teal)} .badge .down{color:var(--red)} .badge .gone{color:var(--dimmer)}
+
+.toast{
+  position:absolute;top:12px;left:50%;transform:translateX(-50%);
+  background:rgba(8,11,16,.9);border:1px solid var(--line);border-radius:9px;
+  padding:7px 14px;font-family:var(--mono);font-size:11px;letter-spacing:.08em;
+  color:var(--teal);opacity:0;transition:opacity .35s;pointer-events:none;backdrop-filter:blur(8px);
+}
+.toast.on{opacity:1}
+.toast.warn{color:var(--red);border-color:#33141b}
+
+.tools{
+  position:absolute;left:12px;bottom:12px;display:flex;gap:6px;
+  background:rgba(8,11,16,.82);border:1px solid var(--line);border-radius:11px;padding:5px;
+  backdrop-filter:blur(8px);
+}
+.tool{
+  display:flex;align-items:center;gap:7px;padding:7px 11px;border-radius:8px;
+  background:transparent;border:0;color:var(--dim);font-family:var(--sans);
+  font-size:12px;cursor:pointer;transition:.14s;
+}
+.tool:hover{background:#121924;color:var(--txt)}
+.tool.on{background:#12262a;color:#c8f4e7}
+.tool.on[data-t="machine"]{background:#2a0d14;color:#ffc2ca}
+.tool.on[data-t="human"]{background:#2a2117;color:#ffe6c6}
+.tool .key{font-family:var(--mono);font-size:9px;color:var(--dimmer);border:1px solid var(--line);border-radius:4px;padding:1px 4px}
+.tool.on .key{color:inherit;opacity:.55;border-color:currentColor}
+.tool svg{width:14px;height:14px;flex:none}
+
+/* ---------- panel ---------- */
+aside{
+  width:302px;flex:none;overflow-y:auto;overflow-x:hidden;
+  display:flex;flex-direction:column;gap:10px;padding-right:2px;
+}
+aside::-webkit-scrollbar{width:6px}
+aside::-webkit-scrollbar-thumb{background:#1b232e;border-radius:3px}
+.card{background:var(--panel);border:1px solid var(--line);border-radius:13px;padding:14px}
+.card h2{
+  font-size:10px;letter-spacing:.19em;color:var(--dim);font-weight:600;
+  display:flex;align-items:center;gap:7px;margin-bottom:14px;
+}
+.card h2 svg{width:12px;height:12px;flex:none}
+.card h2::after{content:"";flex:1;height:1px;background:var(--line-soft)}
+.card.hum h2{color:var(--warm)} .card.mac h2{color:var(--red)} .card.scr h2{color:var(--teal)}
+
+.row{margin-bottom:15px}
+.row:last-child{margin-bottom:0}
+.row .lbl{display:flex;justify-content:space-between;align-items:center;margin-bottom:8px}
+.row .lbl span{font-size:12px;color:#b9c3ce}
+.row .lbl b{
+  font-family:var(--mono);font-size:10.5px;font-weight:500;color:var(--dim);
+  background:#0f151d;border:1px solid var(--line);border-radius:6px;padding:2px 7px;
+}
+input[type=range]{
+  -webkit-appearance:none;appearance:none;width:100%;height:3px;border-radius:2px;
+  background:#1a222c;outline:none;cursor:pointer;
+}
+input[type=range]::-webkit-slider-thumb{
+  -webkit-appearance:none;width:13px;height:13px;border-radius:50%;
+  background:var(--teal);cursor:pointer;box-shadow:0 0 0 3px rgba(53,201,174,.14);transition:.12s;
+}
+input[type=range]::-webkit-slider-thumb:hover{transform:scale(1.15)}
+input[type=range]::-moz-range-thumb{
+  width:13px;height:13px;border:0;border-radius:50%;background:var(--teal);
+  box-shadow:0 0 0 3px rgba(53,201,174,.14);cursor:pointer;
+}
+.hum input[type=range]::-webkit-slider-thumb{background:var(--warm);box-shadow:0 0 0 3px rgba(255,215,163,.14)}
+.hum input[type=range]::-moz-range-thumb{background:var(--warm);box-shadow:0 0 0 3px rgba(255,215,163,.14)}
+.mac input[type=range]::-webkit-slider-thumb{background:var(--red);box-shadow:0 0 0 3px rgba(255,45,70,.14)}
+.mac input[type=range]::-moz-range-thumb{background:var(--red);box-shadow:0 0 0 3px rgba(255,45,70,.14)}
+
+.btns{display:flex;gap:8px;margin-bottom:14px}
+button.act{
+  flex:1;padding:10px;border-radius:9px;border:1px solid transparent;
+  font-family:var(--sans);font-size:12.5px;font-weight:550;cursor:pointer;transition:.14s;
+  display:flex;align-items:center;justify-content:center;gap:6px;
+}
+button.act svg{width:12px;height:12px}
+.play{background:var(--teal);color:#04120f}
+.play:hover{filter:brightness(1.1)}
+.play.paused{background:#12262a;color:var(--teal);border-color:#1d4741}
+.reset{background:#111821;color:var(--dim);border-color:var(--line)}
+.reset:hover{background:#151d27;color:var(--txt)}
+
+.presets{display:grid;grid-template-columns:repeat(3,1fr);gap:6px;margin-bottom:14px}
+.preset{
+  padding:8px 4px;border-radius:8px;background:#0f151d;border:1px solid var(--line);
+  color:var(--dim);font-size:9.5px;letter-spacing:.09em;font-family:var(--sans);
+  cursor:pointer;transition:.14s;font-weight:600;
+}
+.preset:hover{background:#141c26;color:var(--txt);border-color:#22303d}
+
+.toggle{display:flex;align-items:center;justify-content:space-between;gap:10px;cursor:pointer;user-select:none}
+.toggle span{font-size:12px;color:#b9c3ce}
+.sw{width:38px;height:21px;border-radius:11px;background:#1a222c;position:relative;flex:none;transition:.18s}
+.sw::after{content:"";position:absolute;top:3px;left:3px;width:15px;height:15px;border-radius:50%;background:#5b6875;transition:.18s}
+.toggle input{display:none}
+.toggle input:checked + .sw{background:var(--teal)}
+.toggle input:checked + .sw::after{left:20px;background:#04120f}
+
+/* ---------- chart ---------- */
+footer{
+  flex:none;height:132px;background:var(--panel);border:1px solid var(--line);
+  border-radius:13px;padding:11px 14px 8px;display:flex;flex-direction:column;
+}
+.chead{display:flex;align-items:center;gap:10px;margin-bottom:6px}
+.chead h2{font-size:10px;letter-spacing:.19em;color:var(--dim);font-weight:600;white-space:nowrap}
+.legend{display:flex;gap:14px;margin-left:auto;flex-wrap:wrap}
+.leg{display:flex;align-items:center;gap:6px;font-size:10.5px;color:var(--dim);font-family:var(--mono)}
+.leg b{color:var(--txt);font-weight:500}
+#chart{flex:1;width:100%;display:block;min-height:0}
+
+.hint{font-size:10.5px;color:var(--dimmer);text-align:center;letter-spacing:.05em}
+
+/* ---------- feed post-fx ---------- */
+.stage::after{content:"";position:absolute;inset:0;z-index:3;pointer-events:none;
+  background:repeating-linear-gradient(0deg,rgba(0,0,0,.12) 0 1px,transparent 1px 3px),
+             radial-gradient(130% 100% at 50% 45%,transparent 58%,rgba(0,0,0,.42) 100%)}
+#alarm{position:absolute;inset:0;z-index:2;pointer-events:none;opacity:0;transition:opacity .3s;
+  background:radial-gradient(120% 100% at 50% 50%,transparent 42%,rgba(255,25,50,.30) 100%)}
+
+/* ---------- system log ---------- */
+#log{position:absolute;right:12px;bottom:12px;z-index:2;pointer-events:none;text-align:right;
+  font-family:var(--mono);font-size:10px;letter-spacing:.03em;display:flex;flex-direction:column;gap:3px}
+.lg{transition:opacity .4s;text-shadow:0 1px 6px rgba(0,0,0,.85)}
+.lg.sys{color:#66727e}.lg.ok{color:var(--teal)}.lg.bad{color:#ff5a6e}
+
+/* ---------- intro / endcard ---------- */
+.intro{position:absolute;inset:0;z-index:10;display:flex;flex-direction:column;align-items:center;
+  justify-content:center;text-align:center;padding:26px;transition:opacity .7s;
+  background:radial-gradient(120% 90% at 50% 28%,rgba(8,13,18,.88),rgba(4,6,9,.97));backdrop-filter:blur(4px)}
+.intro.off{opacity:0;pointer-events:none}
+.intro .big{font-size:34px;font-weight:650;letter-spacing:.4em;margin-bottom:20px;
+  background:linear-gradient(92deg,#fff,#a9e6d9 70%);-webkit-background-clip:text;background-clip:text;color:transparent}
+.intro .line{font-family:var(--mono);font-size:12.5px;color:var(--dim);min-height:20px;letter-spacing:.05em}
+.intro .line.red{color:var(--red);letter-spacing:.22em;font-size:11px}
+.go{display:flex;gap:10px;flex-wrap:wrap;justify-content:center;margin-top:26px}
+.gobtn{padding:12px 22px;border-radius:10px;border:1px solid #1d4741;background:var(--teal);color:#04120f;
+  font-weight:650;font-size:13px;letter-spacing:.06em;cursor:pointer;font-family:var(--sans)}
+.gobtn:hover{filter:brightness(1.12)}
+.gobtn.mute{background:transparent;color:var(--dim);border-color:var(--line)}
+.gobtn.red{background:var(--red);color:#fff;border-color:transparent}
+.endcard{position:absolute;inset:0;z-index:11;display:none;flex-direction:column;align-items:center;
+  justify-content:center;text-align:center;padding:26px;background:rgba(4,5,8,.85);backdrop-filter:blur(5px)}
+.endcard.on{display:flex}
+.endcard .xt{font-size:30px;font-weight:650;letter-spacing:.3em;color:var(--red);
+  animation:glitch 2.6s steps(1) infinite}
+.endcard .esub{font-family:var(--mono);font-size:11px;color:var(--dim);margin-top:10px;letter-spacing:.08em}
+.endcard .erows{margin-top:18px;font-family:var(--mono);font-size:12px;color:#aab5c0;display:flex;flex-direction:column;gap:6px}
+.endcard .erows b{color:var(--txt)}
+@keyframes glitch{
+  0%,90%{transform:none;text-shadow:0 0 22px rgba(255,45,70,.4)}
+  92%{transform:translateX(2px);text-shadow:-3px 0 var(--teal),3px 0 var(--red)}
+  95%{transform:translateX(-2px);text-shadow:3px 0 var(--teal),-3px 0 var(--red)}
+  97%{transform:none;text-shadow:0 0 22px rgba(255,45,70,.4)}
+}
+@media (prefers-reduced-motion: reduce){.endcard .xt{animation:none}}
+
+@media (max-width:1080px){
+  aside{width:262px}
+  h1{font-size:21px;letter-spacing:.26em}
+}
+@media (max-width:560px){
+  /* four brushes have to share a narrow stage — drop the key hints and tighten up */
+  .tools{left:8px;right:8px;justify-content:space-between;padding:4px}
+  .tool{padding:7px 6px;font-size:11px;gap:5px}
+  .tool .key{display:none}
+  #log{bottom:62px;font-size:9px}
+  .intro .big{font-size:24px;letter-spacing:.3em}
+  .endcard .xt{font-size:21px;letter-spacing:.2em}
+  .stats{display:grid;grid-template-columns:repeat(3,1fr);gap:6px}
+  .stat{padding:8px 9px;min-width:0}
+  .stat .v{font-size:17px}
+  .stat .k{letter-spacing:.06em;font-size:8.5px}
+}
+@media (max-width:860px){
+  body{overflow:auto}
+  .app{height:auto;min-height:100%}
+  main{flex-direction:column}
+  .stage{height:56vh;min-height:320px}
+  aside{width:100%}
+  .stats{width:100%;margin-left:0}
+  .stat{flex:1}
+}
+</style>
+</head>
+<body>
+<div class="app">
+
+  <header>
+    <div class="brand">
+      <div class="mark">
+        <svg viewBox="0 0 24 24" fill="none" stroke="#35c9ae" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M12 3v5M12 21v-5M4.5 7.5l3.5 2M19.5 7.5l-3.5 2M4.5 16.5l3.5-2M19.5 16.5l-3.5-2"/>
+          <circle cx="12" cy="12" r="2.6"/>
+        </svg>
+      </div>
+      <div>
+        <h1>TERMINUS</h1>
+        <div class="tag">a living predator&ndash;prey ecosystem &middot; <s>scrap</s> &rarr; <b>survivors</b> &rarr; <i>machines</i></div>
+      </div>
+    </div>
+    <div class="stats">
+      <div class="stat"><div class="v"><i class="dot h"></i><span id="sHum">0</span></div><div class="k">SURVIVORS</div></div>
+      <div class="stat"><div class="v"><i class="dot m"></i><span id="sMac">0</span></div><div class="k">MACHINES</div></div>
+      <div class="stat"><div class="v"><i class="dot s"></i><span id="sScr">0%</span></div><div class="k">SCRAP</div></div>
+      <div class="stat"><div class="v" style="color:#ff6b7d"><span id="sKil">0</span></div><div class="k">TERMINATED</div></div>
+      <div class="stat"><div class="v"><span id="sTim">0:00</span></div><div class="k">SIM TIME</div></div>
+      <div class="stat"><div class="v" style="color:#ff6b7d"><span id="sThr">v1.0</span></div><div class="k">THREAT MODEL</div></div>
+      <div class="stat"><div class="v"><span id="sFps">60</span></div><div class="k">FPS</div></div>
+    </div>
+  </header>
+
+  <main>
+    <div class="stage" id="stage">
+      <canvas id="world"></canvas>
+      <div id="alarm"></div>
+      <div class="badges" id="badges"></div>
+      <div class="toast" id="toast"></div>
+      <div id="log"></div>
+      <div class="tools">
+        <button class="tool on" data-t="human">
+          <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round">
+            <circle cx="8" cy="3.4" r="2"/><path d="M8 5.6v5M8 10.6l-2.4 4M8 10.6l2.4 4M4.2 7.6h7.6"/>
+          </svg>Human<i class="key">1</i>
+        </button>
+        <button class="tool" data-t="machine">
+          <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linejoin="round">
+            <path d="M8 1.8 14 12H2z"/><circle cx="8" cy="8.6" r="1.5" fill="currentColor" stroke="none"/>
+          </svg>Machine<i class="key">2</i>
+        </button>
+        <button class="tool" data-t="scrap">
+          <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linejoin="round">
+            <path d="M2.5 9.5 6 3l3 5 2-3 2.5 4.5z"/><path d="M1.6 13h12.8"/>
+          </svg>Scrap<i class="key">3</i>
+        </button>
+        <button class="tool" data-t="clear">
+          <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round">
+            <path d="M3.2 3.2 12.8 12.8M12.8 3.2 3.2 12.8"/>
+          </svg>Clear<i class="key">4</i>
+        </button>
+      </div>
+
+      <div class="intro" id="intro">
+        <div class="big">TERMINUS</div>
+        <div class="line red" id="il0"></div>
+        <div class="line" id="il1"></div>
+        <div class="line" id="il2"></div>
+        <div class="line" id="il3"></div>
+        <div class="go">
+          <button class="gobtn" id="goSnd">&#9654; OPEN THE FEED &mdash; SOUND ON</button>
+          <button class="gobtn mute" id="goMute">enter in silence</button>
+        </div>
+      </div>
+
+      <div class="endcard" id="endcard">
+        <div class="xt">HUMANITY: EXTINCT</div>
+        <div class="esub">no further human signatures detected</div>
+        <div class="erows" id="endStats"></div>
+        <div class="go">
+          <button class="gobtn red" id="btnReinit">REINITIALIZE WORLD</button>
+          <button class="gobtn mute" id="btnWatch">keep watching</button>
+        </div>
+      </div>
+    </div>
+
+    <aside>
+      <div class="card">
+        <h2><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="8" cy="8" r="6"/><path d="M8 4.6V8l2.2 1.6"/></svg>SIMULATION</h2>
+        <div class="btns">
+          <button class="act play" id="btnPlay">
+            <svg viewBox="0 0 16 16" fill="currentColor"><rect x="4" y="3" width="3" height="10" rx="1"/><rect x="9" y="3" width="3" height="10" rx="1"/></svg>
+            <span>Pause</span>
+          </button>
+          <button class="act reset" id="btnReset">
+            <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"><path d="M13 8a5 5 0 1 1-1.6-3.7"/><path d="M13.4 2.6v3h-3"/></svg>
+            Reset
+          </button>
+        </div>
+        <div class="presets">
+          <button class="preset" data-p="equilibrium">EQUILIBRIUM</button>
+          <button class="preset" data-p="purge">THE PURGE</button>
+          <button class="preset" data-p="rewild">REWILD</button>
+        </div>
+        <div id="grpSim"></div>
+        <label class="toggle" style="margin-top:14px">
+          <span>Auto-rescue extinct species</span>
+          <input type="checkbox" id="rescue" checked><i class="sw"></i>
+        </label>
+        <label class="toggle" style="margin-top:10px">
+          <span>Sound</span>
+          <input type="checkbox" id="snd"><i class="sw"></i>
+        </label>
+      </div>
+
+      <div class="card scr">
+        <h2><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"><path d="M2.5 9.5 6 3l3 5 2-3 2.5 4.5z"/><path d="M1.6 13h12.8"/></svg>SCRAP</h2>
+        <div id="grpScrap"></div>
+      </div>
+
+      <div class="card hum">
+        <h2><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><circle cx="8" cy="3.4" r="2"/><path d="M8 5.6v5M8 10.6l-2.4 4M8 10.6l2.4 4M4.2 7.6h7.6"/></svg>SURVIVORS</h2>
+        <div id="grpHuman"></div>
+      </div>
+
+      <div class="card mac">
+        <h2><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"><path d="M8 1.8 14 12H2z"/><circle cx="8" cy="8.6" r="1.5" fill="currentColor" stroke="none"/></svg>MACHINES</h2>
+        <div id="grpMachine"></div>
+        <label class="toggle" style="margin-top:14px">
+          <span>Self-improvement</span>
+          <input type="checkbox" id="improve" checked><i class="sw"></i>
+        </label>
+      </div>
+
+      <div class="hint">click &amp; drag the world to paint &middot; 1-4 tools &middot; space pauses</div>
+    </aside>
+  </main>
+
+  <footer>
+    <div class="chead">
+      <h2>POPULATION DYNAMICS &mdash; BOOM &amp; COLLAPSE</h2>
+      <div class="legend">
+        <div class="leg"><i class="dot h"></i>Survivors <b id="lHum">0</b></div>
+        <div class="leg"><i class="dot m"></i>Machines <b id="lMac">0</b></div>
+        <div class="leg"><i class="dot s"></i>Scrap <b id="lScr">0%</b></div>
+      </div>
+    </div>
+    <canvas id="chart"></canvas>
+  </footer>
+
+</div>
+
+<script>
+"use strict";
+
+/* ============================================================
+   TERMINUS — post-singularity predator-prey ecosystem
+   scrap (resource) -> survivors (prey) -> machines (predator)
+   ============================================================ */
+
+const CELL = 11;              // world grid cell size in px
+const MAX_HUMANS  = 4000;
+const MAX_MACHINES = 900;
+const HIST_MAX = 320;         // chart samples kept
+const SAMPLE_DT = 0.25;       // sim-seconds between chart samples
+
+/* ---------- tunable parameters (bound to sliders) ---------- */
+/* Defaults are tuned for a stable Lotka-Volterra oscillation: prey peaks,
+   predators peak ~15s later, prey crashes, predators starve, scrap recovers. */
+const P = {
+  speed: 1,
+  // scrap
+  regrow: 0.18, spread: 0.55, nutrition: 19,
+  // survivors
+  hMetab: 5.5, hBreed: 76, hForage: 1.0, hPanic: 100, hConceal: 0.55,
+  // machines
+  mMetab: 5.5, mBreed: 155, mYield: 24, mSight: 105, mSpeed: 74,
+};
+
+const SPECS = {
+  grpSim: [
+    { k:'speed', label:'Speed', min:0, max:4, step:0.05, fmt:v => v.toFixed(2).replace(/0$/,'')+'×' },
+  ],
+  grpScrap: [
+    { k:'regrow',    label:'Resupply rate', min:0,  max:0.6, step:0.005, fmt:v => v.toFixed(3) },
+    { k:'spread',    label:'Cache spread',  min:0,  max:1,   step:0.01,  fmt:v => v.toFixed(2) },
+    { k:'nutrition', label:'Nutrition',     min:3,  max:45,  step:1,     fmt:v => v|0 },
+  ],
+  grpHuman: [
+    { k:'hMetab',   label:'Metabolism',      min:1,  max:14,  step:0.1, fmt:v => v.toFixed(1) },
+    { k:'hBreed',   label:'Breeding energy', min:40, max:150, step:1,   fmt:v => v|0 },
+    { k:'hForage',  label:'Foraging speed',  min:0.2,max:2.5, step:0.05,fmt:v => v.toFixed(2) },
+    { k:'hPanic',   label:'Panic range',     min:0,  max:220, step:1,   fmt:v => (v|0)+'px' },
+    { k:'hConceal', label:'Concealment',     min:0,  max:0.9, step:0.01,fmt:v => Math.round(v*100)+'%' },
+  ],
+  grpMachine: [
+    { k:'mMetab', label:'Metabolism',      min:0.4,max:10,  step:0.1, fmt:v => v.toFixed(1) },
+    { k:'mBreed', label:'Breeding energy', min:40, max:220, step:1,   fmt:v => v|0 },
+    { k:'mYield', label:'Prey yield',      min:5,  max:95,  step:1,   fmt:v => v|0 },
+    { k:'mSight', label:'Sight range',     min:20, max:340, step:1,   fmt:v => (v|0)+'px' },
+    { k:'mSpeed', label:'Pursuit speed',   min:30, max:150, step:1,   fmt:v => (v|0)+'px/s' },
+  ],
+};
+
+const PRESETS = {
+  equilibrium: { p:{regrow:.18,spread:.55,nutrition:19,hMetab:5.5,hBreed:76,hForage:1,hPanic:100,hConceal:.55,
+                    mMetab:5.5,mBreed:155,mYield:24,mSight:105,mSpeed:74},
+                 seed:{h:220,m:7,g:.55}, rescue:true, msg:'EQUILIBRIUM — the long negotiation' },
+  purge:       { p:{regrow:.16,spread:.5,nutrition:17,hMetab:5.5,hBreed:88,hForage:1,hPanic:130,hConceal:.18,
+                    mMetab:2.2,mBreed:120,mYield:44,mSight:240,mSpeed:96},
+                 seed:{h:420,m:20,g:.6}, rescue:false, msg:'PURGE PROTOCOL ENGAGED' },
+  rewild:      { p:{regrow:.32,spread:.75,nutrition:24,hMetab:4.6,hBreed:70,hForage:1.2,hPanic:100,hConceal:.6,
+                    mMetab:5.5,mBreed:155,mYield:24,mSight:105,mSpeed:74},
+                 seed:{h:80,m:0,g:.85}, rescue:true, msg:'REWILDING — no machines. drop one in.' },
+};
+
+/* ---------- canvas / world ---------- */
+const stage  = document.getElementById('stage');
+const cv     = document.getElementById('world');
+const ctx    = cv.getContext('2d');
+const chartC = document.getElementById('chart');
+const cctx   = chartC.getContext('2d');
+
+let W = 0, H = 0, COLS = 0, ROWS = 0, DPR = 1;
+let scrap = new Float32Array(0);   // 0..1 per cell
+let lvl   = new Uint8Array(0);     // cached draw bucket
+
+let humans = [], machines = [], fx = [];
+let simTime = 0, kills = 0, running = true;
+let everH = true, everM = true;   // has each species existed since the last seed?
+let corpses = [];                 // fallen survivors litter the field, then fade
+let adaptLvl = 0, adaptNext = 400;// machine self-improvement ratchet (see adaptTick)
+let impOn = true;                 // cached "Self-improvement" checkbox state
+let extinct = false, silentLogged = false;
+let kps = 0, kSample = 0;         // kill-rate estimate driving the alarm vignette
+let msIdx = 0, prevTH = 0, prevTM = 0;
+const MILESTONES = [100, 500, 1000, 2500, 5000, 10000, 25000, 50000, 100000];
+let hist = [], sampleAcc = 0;
+let fps = 60, frames = 0, fpsAcc = 0;
+
+/* ---------- spatial hash ---------- */
+const BUCKET = 44;
+class Hash {
+  constructor(){ this.map = new Map(); this.cols = 1; }
+  build(list){
+    this.map.clear();
+    this.cols = Math.max(1, Math.ceil(W / BUCKET));
+    for (let i = 0; i < list.length; i++){
+      const a = list[i];
+      const key = ((a.y / BUCKET) | 0) * this.cols + ((a.x / BUCKET) | 0);
+      let b = this.map.get(key);
+      if (!b) this.map.set(key, b = []);
+      b.push(a);
+    }
+  }
+  near(x, y, r, out){
+    out.length = 0;
+    const c0 = Math.max(0, ((x - r) / BUCKET) | 0), c1 = ((x + r) / BUCKET) | 0;
+    const r0 = Math.max(0, ((y - r) / BUCKET) | 0), r1 = ((y + r) / BUCKET) | 0;
+    for (let ry = r0; ry <= r1; ry++){
+      const base = ry * this.cols;
+      for (let cx = c0; cx <= c1; cx++){
+        const b = this.map.get(base + cx);
+        if (b) for (let i = 0; i < b.length; i++) out.push(b[i]);
+      }
+    }
+    return out;
+  }
+}
+const hHash = new Hash(), mHash = new Hash();
+const scratch = [];
+
+/* ---------- helpers ---------- */
+const rnd  = (a, b) => a + Math.random() * (b - a);
+const clamp = (v, a, b) => v < a ? a : v > b ? b : v;
+const cellAt = (x, y) => {
+  const c = clamp((x / CELL) | 0, 0, COLS - 1), r = clamp((y / CELL) | 0, 0, ROWS - 1);
+  return r * COLS + c;
+};
+
+/* ---------- sizing ---------- */
+function resize(){
+  const rect = stage.getBoundingClientRect();
+  const oldW = W, oldH = H;
+  DPR = Math.min(window.devicePixelRatio || 1, 2);
+  W = Math.max(200, Math.round(rect.width));
+  H = Math.max(160, Math.round(rect.height));
+  cv.width  = Math.round(W * DPR);
+  cv.height = Math.round(H * DPR);
+  ctx.setTransform(DPR, 0, 0, DPR, 0, 0);
+
+  const nc = Math.max(4, Math.ceil(W / CELL)), nr = Math.max(4, Math.ceil(H / CELL));
+  const ns = new Float32Array(nc * nr);
+  if (scrap.length){
+    // Tile the old grid into the new one. A straight overlap-copy would leave every
+    // newly exposed cell at zero, so growing the window carved out a dead zone that
+    // only crept back at the 0.06 cold-start regrowth rate. Tiling keeps both the
+    // density and the clumpy texture, and degrades to a plain copy when shrinking.
+    for (let r = 0; r < nr; r++)
+      for (let c = 0; c < nc; c++)
+        ns[r * nc + c] = scrap[(r % ROWS) * COLS + (c % COLS)];
+  } else {
+    for (let i = 0; i < ns.length; i++) ns[i] = Math.random() < .55 ? rnd(.3, 1) : 0;
+  }
+  scrap = ns; lvl = new Uint8Array(ns.length); COLS = nc; ROWS = nr;
+
+  // rescale agents into the new bounds rather than clamping them, which used to pile
+  // the whole population against the edges after a shrink
+  const kx = oldW > 0 ? W / oldW : 1, ky = oldH > 0 ? H / oldH : 1;
+  for (const a of humans)   { a.x = clamp(a.x * kx, 2, W - 2); a.y = clamp(a.y * ky, 2, H - 2); }
+  for (const a of machines) { a.x = clamp(a.x * kx, 3, W - 3); a.y = clamp(a.y * ky, 3, H - 3); }
+
+  const crect = chartC.getBoundingClientRect();
+  chartC.width  = Math.max(2, Math.round(crect.width  * DPR));
+  chartC.height = Math.max(2, Math.round(crect.height * DPR));
+  cctx.setTransform(DPR, 0, 0, DPR, 0, 0);
+  drawChart();
+}
+
+/* ---------- spawning ---------- */
+function makeHuman(x, y, e){
+  return { x, y, vx: rnd(-1,1), vy: rnd(-1,1), e: e ?? rnd(35, 60),
+           panic: 0, age: 0, cd: rnd(0, 2), ph: Math.random() * 6.28, dead: false };
+}
+function makeMachine(x, y, e){
+  return { x, y, a: rnd(0, 6.28), e: e ?? rnd(50, 80),
+           age: 0, cd: rnd(0, 3), lock: null, turn: 0, flash: 0 };
+}
+
+function seedWorld(h, m, g){
+  humans = []; machines = []; fx = [];
+  for (let i = 0; i < scrap.length; i++) scrap[i] = Math.random() < g ? rnd(.25, 1) : 0;
+  for (let i = 0; i < h; i++) humans.push(makeHuman(rnd(0, W), rnd(0, H)));
+  for (let i = 0; i < m; i++) machines.push(makeMachine(rnd(0, W), rnd(0, H)));
+  everH = h > 0; everM = m > 0;
+  corpses.length = 0;
+  adaptLvl = 0; adaptNext = 400;
+  extinct = false; silentLogged = false;
+  msIdx = 0; kps = 0; kSample = 0; prevTH = 0; prevTM = 0;
+  simTime = 0; kills = 0; hist = []; sampleAcc = 0;
+  const ec = document.getElementById('endcard');
+  if (ec) ec.classList.remove('on');
+}
+
+/* ---------- toast ---------- */
+const toastEl = document.getElementById('toast');
+let toastT = 0;
+function toast(msg, warn){
+  toastEl.textContent = msg;
+  toastEl.classList.toggle('warn', !!warn);
+  toastEl.classList.add('on');
+  toastT = 2.6;
+}
+
+/* ---------- procedural audio (WebAudio, zero assets) ---------- */
+const SND = (() => {
+  let actx = null, master = null, on = false, lastKill = 0;
+  function init(){
+    if (actx) return;
+    try {
+      actx = new (window.AudioContext || window.webkitAudioContext)();
+      master = actx.createGain(); master.gain.value = 0.5; master.connect(actx.destination);
+      // ambient dread: two detuned saws + a sub sine through a slowly breathing lowpass
+      const lp = actx.createBiquadFilter(); lp.type = 'lowpass'; lp.frequency.value = 230; lp.Q.value = 0.8;
+      const dg = actx.createGain(); dg.gain.value = 0.05; lp.connect(dg); dg.connect(master);
+      [[55, 'sawtooth'], [55.7, 'sawtooth'], [36.7, 'sine']].forEach(([f, t]) => {
+        const o = actx.createOscillator(); o.type = t; o.frequency.value = f; o.connect(lp); o.start();
+      });
+      const lfo = actx.createOscillator(); lfo.frequency.value = 0.06;
+      const lg = actx.createGain(); lg.gain.value = 90;
+      lfo.connect(lg); lg.connect(lp.frequency); lfo.start();
+    } catch (e) { actx = null; }
+  }
+  function tone(f0, f1, dur, type, vol, delay){
+    if (!on || !actx) return;
+    const t = actx.currentTime + (delay || 0);
+    const o = actx.createOscillator(), g = actx.createGain();
+    o.type = type;
+    o.frequency.setValueAtTime(f0, t);
+    if (f1 !== f0) o.frequency.exponentialRampToValueAtTime(Math.max(20, f1), t + dur);
+    g.gain.setValueAtTime(vol, t);
+    g.gain.exponentialRampToValueAtTime(0.0001, t + dur);
+    o.connect(g); g.connect(master);
+    o.start(t); o.stop(t + dur + 0.05);
+  }
+  return {
+    setOn(v){
+      on = v;
+      if (v){ init(); if (actx && actx.resume) actx.resume(); }
+      else if (actx && actx.suspend) actx.suspend();
+    },
+    kill(){                                       // rate-limited so massacres chatter, not roar
+      const n = performance.now();
+      if (n - lastKill < 90) return;
+      lastKill = n;
+      tone(1350, 170, 0.06, 'square', 0.035);
+    },
+    adapt(){ tone(311,311,.10,'sine',.06); tone(370,370,.10,'sine',.06,.11); tone(466,466,.20,'sine',.06,.22); },
+    extinct(){ tone(160, 30, 1.6, 'sawtooth', 0.12); },
+    deploy(){ tone(1245,1245,.05,'square',.04); tone(1245,1245,.05,'square',.04,.13); },
+    rescue(){ tone(520, 690, 0.22, 'sine', 0.05); },
+  };
+})();
+
+/* ============================================================
+   UPDATE
+   ============================================================ */
+function updateScrap(dt){
+  const g = P.regrow * dt;
+  if (g <= 0) return;
+  const sp = P.spread;
+  for (let r = 0; r < ROWS; r++){
+    const base = r * COLS;
+    for (let c = 0; c < COLS; c++){
+      const i = base + c;
+      const s = scrap[i];
+      if (s >= 1) continue;
+      // logistic regrowth, boosted by stocked neighbours (caches spread outward)
+      let n = 0;
+      if (c > 0)        n += scrap[i - 1];
+      if (c < COLS - 1) n += scrap[i + 1];
+      if (r > 0)        n += scrap[i - COLS];
+      if (r < ROWS - 1) n += scrap[i + COLS];
+      const rate = (1 - sp) + sp * (n * 0.25);
+      const v = s + g * rate * (0.06 + s) * (1 - s);
+      scrap[i] = v > 1 ? 1 : v;
+    }
+  }
+}
+
+function updateHumans(dt){
+  const metab = P.hMetab, breed = P.hBreed, forage = P.hForage;
+  const panicR = P.hPanic, panicR2 = panicR * panicR;
+  const nut = P.nutrition;
+  const born = [];
+
+  for (let i = humans.length - 1; i >= 0; i--){
+    const a = humans[i];
+    if (a.dead){ humans[i] = humans[humans.length - 1]; humans.pop(); continue; }
+    a.age += dt; a.cd -= dt;
+
+    /* --- threat check --- */
+    let tx = 0, ty = 0, threat = false;
+    if (panicR > 4){
+      const list = mHash.near(a.x, a.y, panicR, scratch);
+      let best = panicR2;
+      for (let j = 0; j < list.length; j++){
+        const m = list[j], dx = a.x - m.x, dy = a.y - m.y, d2 = dx*dx + dy*dy;
+        if (d2 < best){ best = d2; tx = dx; ty = dy; threat = true; }
+      }
+    }
+
+    let sp;
+    if (threat){
+      a.panic = Math.min(1, a.panic + dt * 6);
+      const d = Math.hypot(tx, ty) || 1;
+      a.vx += (tx / d) * dt * 9;
+      a.vy += (ty / d) * dt * 9;
+      sp = 26 + 36 * a.panic;
+    } else {
+      a.panic = Math.max(0, a.panic - dt * 1.4);
+      /* --- forage: sample 8 headings, steer at the richest --- */
+      if (a.cd <= 0){
+        a.cd = 0.28 + Math.random() * 0.2;
+        let bx = 0, by = 0, bv = -1;
+        const reach = 26;
+        for (let k = 0; k < 8; k++){
+          const ang = k * 0.7854 + a.ph * 0.1;
+          const px = a.x + Math.cos(ang) * reach, py = a.y + Math.sin(ang) * reach;
+          if (px < 0 || py < 0 || px > W || py > H) continue;
+          const v = scrap[cellAt(px, py)] + Math.random() * 0.12;
+          if (v > bv){ bv = v; bx = Math.cos(ang); by = Math.sin(ang); }
+        }
+        if (bv > 0.05){ a.vx += bx * 2.2; a.vy += by * 2.2; }
+        else { a.vx += rnd(-1.6, 1.6); a.vy += rnd(-1.6, 1.6); }
+      }
+      sp = 26;
+    }
+
+    /* --- integrate --- */
+    const m = Math.hypot(a.vx, a.vy) || 1;
+    a.vx = a.vx / m * sp; a.vy = a.vy / m * sp;
+    a.x += a.vx * dt; a.y += a.vy * dt;
+    a.ph += dt * (2 + a.panic * 6);
+
+    if (a.x < 2){ a.x = 2; a.vx = Math.abs(a.vx); }
+    else if (a.x > W - 2){ a.x = W - 2; a.vx = -Math.abs(a.vx); }
+    if (a.y < 2){ a.y = 2; a.vy = Math.abs(a.vy); }
+    else if (a.y > H - 2){ a.y = H - 2; a.vy = -Math.abs(a.vy); }
+
+    /* --- feed --- */
+    const ci = cellAt(a.x, a.y);
+    const s = scrap[ci];
+    if (s > 0.02){
+      const take = Math.min(s, forage * dt);
+      scrap[ci] = s - take;
+      a.e += take * nut;
+    }
+    a.e -= metab * dt * (1 + a.panic * 1.1);
+
+    /* --- breed / die --- */
+    if (a.e > breed && humans.length + born.length < MAX_HUMANS){
+      a.e *= 0.5;
+      born.push(makeHuman(a.x + rnd(-6, 6), a.y + rnd(-6, 6), a.e));
+    }
+    if (a.e <= 0){
+      humans[i] = humans[humans.length - 1]; humans.pop();
+    }
+  }
+  for (let i = 0; i < born.length; i++) humans.push(born[i]);
+}
+
+function updateMachines(dt){
+  // self-improvement: each threat-model level sharpens the whole fleet a little.
+  // slider values stay honest — the multiplier is applied at use time only.
+  const IMP = impOn ? adaptLvl : 0;
+  const metab = P.mMetab * (1 - 0.015 * IMP), breed = P.mBreed, yield_ = P.mYield;
+  const sight = P.mSight * (1 + 0.05 * IMP), sight2 = sight * sight;
+  const chase = P.mSpeed * (1 + 0.03 * IMP);
+  const conceal = P.hConceal;
+  const born = [];
+
+  for (let i = machines.length - 1; i >= 0; i--){
+    const m = machines[i];
+    m.age += dt; m.cd -= dt; m.turn -= dt;
+    if (m.flash > 0) m.flash -= dt;
+
+    /* --- acquire target (concealment shortens effective range) --- */
+    let target = null, bd2 = sight2;
+    const list = hHash.near(m.x, m.y, sight, scratch);
+    for (let j = 0; j < list.length; j++){
+      const h = list[j];
+      if (h.dead) continue;
+      const dx = h.x - m.x, dy = h.y - m.y, d2 = dx*dx + dy*dy;
+      if (d2 >= bd2) continue;
+      if (conceal > 0){
+        const hide = scrap[cellAt(h.x, h.y)] * conceal;
+        const eff = sight * (1 - hide);
+        if (d2 > eff * eff) continue;
+      }
+      bd2 = d2; target = h;
+    }
+
+    let sp;
+    if (target){
+      const dx = target.x - m.x, dy = target.y - m.y;
+      const want = Math.atan2(dy, dx);
+      let diff = want - m.a;
+      while (diff >  Math.PI) diff -= 6.28318;
+      while (diff < -Math.PI) diff += 6.28318;
+      m.a += clamp(diff, -7 * dt, 7 * dt);
+      sp = chase;
+      m.lock = 1;
+
+      if (dx*dx + dy*dy < 30){                    // kill radius ~5.5px
+        target.dead = true;                       // reaped at the top of the next human pass
+        m.e += yield_; kills++; m.flash = 0.28;
+        spark(target.x, target.y);
+        if (corpses.length >= 240) corpses.shift();
+        corpses.push({ x: target.x, y: target.y, t: 0, r: rnd(0, 6.28) });
+        SND.kill();
+      }
+    } else {
+      m.lock = null;
+      if (m.turn <= 0){ m.turn = rnd(0.8, 2.4); m.a += rnd(-1.1, 1.1); }
+      sp = chase * 0.5;
+    }
+
+    m.x += Math.cos(m.a) * sp * dt;
+    m.y += Math.sin(m.a) * sp * dt;
+    if (m.x < 3){ m.x = 3; m.a = Math.PI - m.a; }
+    else if (m.x > W - 3){ m.x = W - 3; m.a = Math.PI - m.a; }
+    if (m.y < 3){ m.y = 3; m.a = -m.a; }
+    else if (m.y > H - 3){ m.y = H - 3; m.a = -m.a; }
+
+    m.e -= metab * dt * (target ? 1.5 : 1);
+
+    if (m.e > breed && machines.length + born.length < MAX_MACHINES){
+      m.e *= 0.5;
+      const c = makeMachine(m.x + rnd(-7, 7), m.y + rnd(-7, 7), m.e);
+      c.a = m.a + rnd(-1, 1);
+      born.push(c);
+    }
+    if (m.e <= 0){ machines[i] = machines[machines.length - 1]; machines.pop(); }
+  }
+  for (let i = 0; i < born.length; i++) machines.push(born[i]);
+}
+
+function spark(x, y){
+  if (fx.length > 420) return;
+  fx.push({ x, y, t: 0, ring: true });
+  for (let i = 0; i < 5; i++){
+    const a = Math.random() * 6.28, s = rnd(20, 66);
+    fx.push({ x, y, vx: Math.cos(a) * s, vy: Math.sin(a) * s, t: 0 });
+  }
+}
+function updateFx(dt){
+  for (let i = fx.length - 1; i >= 0; i--){
+    const p = fx[i];
+    p.t += dt;
+    if (!p.ring){ p.x += p.vx * dt; p.y += p.vy * dt; p.vx *= 0.93; p.vy *= 0.93; }
+    if (p.t > 0.55){ fx[i] = fx[fx.length - 1]; fx.pop(); }
+  }
+  for (let i = corpses.length - 1; i >= 0; i--){
+    corpses[i].t += dt;
+    if (corpses[i].t > 30){ corpses[i] = corpses[corpses.length - 1]; corpses.pop(); }
+  }
+}
+
+function rescue(){
+  // only restore a species that has actually existed since the last seed —
+  // otherwise REWILD (which starts with no machines) would spawn them anyway
+  if (humans.length)   everH = true;
+  if (machines.length) everM = true;
+  if (!document.getElementById('rescue').checked) return;
+  if (everH && humans.length === 0){
+    for (let i = 0; i < 26; i++) humans.push(makeHuman(rnd(0, W), rnd(0, H), 55));
+    toast('SIGNAL DETECTED — survivors reseeded');
+    slog('faint signal — survivor cell located', 'ok');
+    SND.rescue();
+  }
+  if (everM && machines.length === 0){
+    for (let i = 0; i < 3; i++) machines.push(makeMachine(rnd(0, W), rnd(0, H), 80));
+    toast('NEW UNITS DEPLOYED', true);
+    slog('REINFORCEMENT UNITS DEPLOYED', 'bad');
+    SND.deploy();
+  }
+}
+
+/* the threat model versions up as terminations accumulate — the machines learn */
+function adaptTick(){
+  if (!impOn || adaptLvl >= 12 || kills < adaptNext) return;
+  adaptLvl++; adaptNext += 400;
+  slog('THREAT MODEL UPDATED → v' + (1 + adaptLvl / 10).toFixed(1) +
+       ' · sight +' + (5 * adaptLvl) + '% · pursuit +' + (3 * adaptLvl) + '%', 'bad');
+  SND.adapt();
+}
+
+function extinctionTick(){
+  if (humans.length === 0 && everH && !extinct){
+    extinct = true;
+    slog('NO HUMAN SIGNATURES REMAIN', 'bad');
+    SND.extinct();
+    if (!document.getElementById('rescue').checked) showEnd();
+  } else if (humans.length > 0 && extinct){
+    extinct = false; silentLogged = false;
+  }
+  if (extinct && everM && machines.length === 0 && !silentLogged){
+    silentLogged = true;
+    slog('all units dormant. nothing moves.', 'sys');
+  }
+}
+
+function showEnd(){
+  const mm = (simTime / 60) | 0, ss = (simTime % 60) | 0;
+  document.getElementById('endStats').innerHTML =
+    '<div>humanity survived <b>' + mm + ':' + (ss < 10 ? '0' : '') + ss + '</b></div>' +
+    '<div><b>' + kills.toLocaleString() + '</b> terminated</div>' +
+    '<div>final threat model <b>v' + (1 + adaptLvl / 10).toFixed(1) + '</b></div>';
+  document.getElementById('endcard').classList.add('on');
+}
+
+function scrapPct(){
+  let t = 0;
+  for (let i = 0; i < scrap.length; i++) t += scrap[i];
+  return scrap.length ? t / scrap.length : 0;
+}
+
+function step(dt){
+  impOn = document.getElementById('improve').checked;
+  hHash.build(humans);
+  mHash.build(machines);
+  updateScrap(dt);
+  updateHumans(dt);
+  updateMachines(dt);
+  updateFx(dt);
+  adaptTick();
+  extinctionTick();          // must run before rescue() or extinction is never observed
+  rescue();
+  simTime += dt;
+
+  sampleAcc += dt;
+  if (sampleAcc >= SAMPLE_DT){
+    sampleAcc = 0;
+    hist.push({ h: humans.length, m: machines.length, g: scrapPct(), x: extinct ? 1 : 0 });
+    if (hist.length > HIST_MAX) hist.shift();
+  }
+}
+
+/* ============================================================
+   RENDER
+   ============================================================ */
+const SCRAP_COLS = ['#0e2126','#153f43','#1c6360','#248c81','#35c9ae'];
+const hasRound = typeof ctx.roundRect === 'function';
+
+function drawScrap(){
+  const size = CELL - 3, off = 1.5, rad = 2.4;
+  // bucket every cell once
+  for (let i = 0; i < scrap.length; i++){
+    const s = scrap[i];
+    lvl[i] = s < 0.04 ? 0 : s < 0.28 ? 1 : s < 0.5 ? 2 : s < 0.72 ? 3 : s < 0.9 ? 4 : 5;
+  }
+  // empty cells: faint substrate dots
+  ctx.fillStyle = 'rgba(120,175,190,.055)';
+  ctx.beginPath();
+  for (let r = 0; r < ROWS; r++){
+    const base = r * COLS, y = r * CELL + CELL / 2 - 1.4;
+    for (let c = 0; c < COLS; c++){
+      if (lvl[base + c] !== 0) continue;
+      ctx.rect(c * CELL + CELL / 2 - 1.4, y, 2.8, 2.8);
+    }
+  }
+  ctx.fill();
+  // stocked cells, one path per level
+  for (let L = 1; L <= 5; L++){
+    ctx.fillStyle = SCRAP_COLS[L - 1];
+    ctx.beginPath();
+    let any = false;
+    for (let r = 0; r < ROWS; r++){
+      const base = r * COLS, y = r * CELL + off;
+      for (let c = 0; c < COLS; c++){
+        if (lvl[base + c] !== L) continue;
+        any = true;
+        if (hasRound) ctx.roundRect(c * CELL + off, y, size, size, rad);
+        else ctx.rect(c * CELL + off, y, size, size);
+      }
+    }
+    if (any) ctx.fill();
+  }
+}
+
+function drawCorpses(){
+  ctx.lineCap = 'round';
+  ctx.lineWidth = 1.1;
+  for (let i = 0; i < corpses.length; i++){
+    const c = corpses[i];
+    const a = c.t < 22 ? 1 : 1 - (c.t - 22) / 8;
+    // dark stain first, then the fallen figure lying flat
+    ctx.fillStyle = 'rgba(120,20,30,' + (0.10 * a).toFixed(3) + ')';
+    ctx.beginPath(); ctx.ellipse(c.x, c.y + 1, 4.5, 2.6, 0, 0, 6.29); ctx.fill();
+    const dx = Math.cos(c.r), dy = Math.sin(c.r) * 0.45;   // foreshortened
+    const grey = 'rgba(130,145,158,' + (0.38 * a).toFixed(3) + ')';
+    ctx.strokeStyle = grey;
+    ctx.beginPath();
+    ctx.moveTo(c.x - dx * 2.6, c.y - dy * 2.6);
+    ctx.lineTo(c.x + dx * 2.2, c.y + dy * 2.2);
+    ctx.stroke();
+    ctx.fillStyle = grey;
+    ctx.beginPath(); ctx.arc(c.x - dx * 3.6, c.y - dy * 3.6, 1.2, 0, 6.29); ctx.fill();
+  }
+}
+
+let glowSpr = null;
+function makeGlow(){
+  const c = document.createElement('canvas'); c.width = c.height = 48;
+  const g = c.getContext('2d');
+  const rg = g.createRadialGradient(24, 24, 2, 24, 24, 24);
+  rg.addColorStop(0, 'rgba(255,45,70,.30)');
+  rg.addColorStop(1, 'rgba(255,45,70,0)');
+  g.fillStyle = rg; g.fillRect(0, 0, 48, 48);
+  glowSpr = c;
+}
+
+function drawHumans(){
+  // two passes: calm, panicked
+  for (let pass = 0; pass < 2; pass++){
+    const panicked = pass === 1;
+    ctx.strokeStyle = panicked ? '#ff9166' : '#ffd7a3';
+    ctx.fillStyle   = panicked ? '#ff9166' : '#ffd7a3';
+    ctx.lineWidth = 1.1;
+    ctx.lineCap = 'round';
+    ctx.beginPath();
+    let n = 0;
+    for (let i = 0; i < humans.length; i++){
+      const a = humans[i];
+      if ((a.panic > 0.35) !== panicked) continue;
+      n++;
+      const sw = Math.sin(a.ph) * 1.7;           // leg swing
+      const x = a.x, y = a.y;
+      ctx.moveTo(x, y - 1.6); ctx.lineTo(x, y + 1.4);           // torso
+      ctx.moveTo(x, y + 1.4); ctx.lineTo(x - 1.6 + sw, y + 4);  // legs
+      ctx.moveTo(x, y + 1.4); ctx.lineTo(x + 1.6 + sw, y + 4);
+      ctx.moveTo(x - 1.9, y - 0.4 + sw * .3); ctx.lineTo(x + 1.9, y - 0.4 - sw * .3); // arms
+    }
+    if (n) ctx.stroke();
+    if (n){
+      ctx.beginPath();
+      for (let i = 0; i < humans.length; i++){
+        const a = humans[i];
+        if ((a.panic > 0.35) !== panicked) continue;
+        ctx.moveTo(a.x + 1.5, a.y - 3.4);
+        ctx.arc(a.x, a.y - 3.4, 1.5, 0, 6.29);
+      }
+      ctx.fill();
+    }
+  }
+}
+
+function drawMachines(){
+  for (let i = 0; i < machines.length; i++){
+    const m = machines[i];
+    const c = Math.cos(m.a), s = Math.sin(m.a);
+    ctx.drawImage(glowSpr, m.x - 24, m.y - 24);           // soft red halo
+    if (m.lock) ctx.drawImage(glowSpr, m.x - 24, m.y - 24); // hotter when hunting
+    ctx.save();
+    ctx.translate(m.x, m.y);
+    ctx.rotate(m.a);
+
+    if (m.lock){                                  // short targeting beam when locked on
+      ctx.fillStyle = 'rgba(255,45,70,.10)';
+      ctx.beginPath();
+      ctx.moveTo(2, 0);
+      ctx.arc(0, 0, 26, -0.30, 0.30);
+      ctx.closePath();
+      ctx.fill();
+    }
+    ctx.beginPath();
+    ctx.moveTo(6.2, 0); ctx.lineTo(-3.8, 3.6); ctx.lineTo(-2.2, 0); ctx.lineTo(-3.8, -3.6);
+    ctx.closePath();
+    ctx.fillStyle = m.flash > 0 ? '#ff7b8b' : '#31090f';
+    ctx.fill();
+    ctx.strokeStyle = m.lock ? '#ff4d61' : '#c4243a';
+    ctx.lineWidth = 1;
+    ctx.stroke();
+    ctx.restore();
+
+    ctx.fillStyle = m.lock ? '#ffe3e7' : '#ff5a6e';
+    ctx.beginPath();
+    ctx.arc(m.x + c * 1.6, m.y + s * 1.6, m.flash > 0 ? 2.1 : 1.25, 0, 6.29);
+    ctx.fill();
+  }
+}
+
+function drawFx(){
+  for (let i = 0; i < fx.length; i++){
+    const p = fx[i], k = 1 - p.t / 0.55;
+    if (p.ring){
+      ctx.strokeStyle = 'rgba(255,80,100,' + (k * 0.5).toFixed(3) + ')';
+      ctx.lineWidth = 1.2;
+      ctx.beginPath();
+      ctx.arc(p.x, p.y, (1 - k) * 15 + 2, 0, 6.29);
+      ctx.stroke();
+    } else {
+      ctx.fillStyle = 'rgba(255,150,120,' + (k * 0.85).toFixed(3) + ')';
+      ctx.fillRect(p.x - 0.9, p.y - 0.9, 1.8, 1.8);
+    }
+  }
+}
+
+function render(){
+  ctx.clearRect(0, 0, W, H);
+  drawScrap();
+  drawCorpses();
+  drawFx();
+  drawHumans();
+  drawMachines();
+  if (hoverOn) drawCursor();
+}
+
+/* ---------- brush cursor ---------- */
+let hoverOn = false, mx = 0, my = 0, painting = false, tool = 'human';
+const BRUSH = { human: 22, machine: 16, scrap: 34, clear: 36 };
+function drawCursor(){
+  const r = BRUSH[tool];
+  ctx.strokeStyle = tool === 'machine' ? 'rgba(255,45,70,.45)'
+                  : tool === 'human'   ? 'rgba(255,215,163,.45)'
+                  : tool === 'scrap'   ? 'rgba(53,201,174,.45)'
+                  : 'rgba(150,165,180,.35)';
+  ctx.lineWidth = 1;
+  ctx.setLineDash([3, 4]);
+  ctx.beginPath(); ctx.arc(mx, my, r, 0, 6.29); ctx.stroke();
+  ctx.setLineDash([]);
+}
+
+/* ============================================================
+   CHART
+   ============================================================ */
+function drawChart(){
+  const w = chartC.width / DPR, h = chartC.height / DPR;
+  cctx.clearRect(0, 0, w, h);
+  if (hist.length < 2) return;
+
+  const pad = 4, gh = h - pad * 2;
+  let maxH = 10, maxM = 4;
+  for (let i = 0; i < hist.length; i++){
+    if (hist[i].h > maxH) maxH = hist[i].h;
+    if (hist[i].m > maxM) maxM = hist[i].m;
+  }
+  maxH *= 1.12; maxM *= 1.2;
+  const X = i => (i / (HIST_MAX - 1)) * w;
+
+  // gridlines
+  cctx.strokeStyle = 'rgba(255,255,255,.045)';
+  cctx.lineWidth = 1;
+  for (let k = 0; k <= 3; k++){
+    const y = pad + (gh * k / 3) + .5;
+    cctx.beginPath(); cctx.moveTo(0, y); cctx.lineTo(w, y); cctx.stroke();
+  }
+
+  const line = (key, max, color, fill) => {
+    cctx.beginPath();
+    for (let i = 0; i < hist.length; i++){
+      const y = pad + gh - (hist[i][key] / max) * gh;
+      i ? cctx.lineTo(X(i), y) : cctx.moveTo(X(i), y);
+    }
+    if (fill){
+      const g = cctx.createLinearGradient(0, pad, 0, pad + gh);
+      g.addColorStop(0, fill); g.addColorStop(1, 'rgba(0,0,0,0)');
+      cctx.save();
+      cctx.lineTo(X(hist.length - 1), pad + gh);
+      cctx.lineTo(X(0), pad + gh);
+      cctx.closePath();
+      cctx.fillStyle = g; cctx.fill();
+      cctx.restore();
+      cctx.beginPath();
+      for (let i = 0; i < hist.length; i++){
+        const y = pad + gh - (hist[i][key] / max) * gh;
+        i ? cctx.lineTo(X(i), y) : cctx.moveTo(X(i), y);
+      }
+    }
+    cctx.strokeStyle = color; cctx.lineWidth = 1.6;
+    cctx.lineJoin = 'round'; cctx.stroke();
+  };
+
+  // scrap % first (background), then predators, then prey
+  cctx.setLineDash([2, 3]);
+  line('g', 1.0, 'rgba(53,201,174,.6)');
+  cctx.setLineDash([]);
+  line('h', maxH, '#ffd7a3', 'rgba(255,215,163,.14)');
+  line('m', maxM, '#ff2d46');
+
+  // extinction spans show as a red dead-zone band
+  cctx.fillStyle = 'rgba(255,45,70,.16)';
+  for (let i = 0; i < hist.length; i++)
+    if (hist[i].x) cctx.fillRect(X(i), pad, Math.max(1, w / (HIST_MAX - 1)), gh);
+
+  // peak label for survivors
+  cctx.font = '9px ui-monospace,monospace';
+  cctx.fillStyle = 'rgba(255,215,163,.5)';
+  cctx.fillText('peak ' + Math.round(maxH / 1.12), 4, pad + 9);
+}
+
+/* ============================================================
+   HUD
+   ============================================================ */
+const el = id => document.getElementById(id);
+const badges = el('badges');
+let hudAcc = 0;
+
+/* cold little system feed, bottom-right of the stage */
+function slog(msg, cls){
+  const host = el('log');
+  const d = document.createElement('div');
+  d.className = 'lg ' + (cls || 'sys');
+  d.textContent = '▸ ' + msg;
+  host.prepend(d);
+  while (host.children.length > 6) host.lastChild.remove();
+  let o = 1;
+  for (const c of host.children){ c.style.opacity = o; o *= 0.72; }
+}
+
+function trend(key){
+  if (hist.length < 12) return 0;
+  const now = hist[hist.length - 1][key];
+  const then = hist[Math.max(0, hist.length - 17)][key];
+  if (now === 0) return -2;
+  if (then < 3) return now > then ? 1 : 0;
+  const d = (now - then) / then;
+  return d > 0.16 ? 1 : d < -0.16 ? -1 : 0;
+}
+function badgeHTML(icon, t){
+  if (t === -2) return '<div class="badge">' + icon + '<span class="gone">extinct</span></div>';
+  if (t === 1)  return '<div class="badge">' + icon + '<span class="up">▲ booming</span></div>';
+  if (t === -1) return '<div class="badge">' + icon + '<span class="down">▼ crashing</span></div>';
+  return '<div class="badge">' + icon + '<span>— stable</span></div>';
+}
+function hud(){
+  const g = scrapPct();
+  el('sHum').textContent = humans.length;
+  el('sMac').textContent = machines.length;
+  el('sScr').textContent = Math.round(g * 100) + '%';
+  el('sKil').textContent = kills;
+  el('sFps').textContent = Math.round(fps);
+  const mm = (simTime / 60) | 0, ss = (simTime % 60) | 0;
+  el('sTim').textContent = mm + ':' + (ss < 10 ? '0' : '') + ss;
+  el('lHum').textContent = humans.length;
+  el('lMac').textContent = machines.length;
+  el('lScr').textContent = Math.round(g * 100) + '%';
+  el('sThr').textContent = 'v' + (1 + adaptLvl / 10).toFixed(1);
+
+  const th = humans.length ? trend('h') : -2, tm = machines.length ? trend('m') : -2;
+  badges.innerHTML =
+    badgeHTML('<i class="dot h"></i>', th) +
+    badgeHTML('<i class="dot m"></i>', tm);
+  if (th === 1  && prevTH !== 1  && humans.length > 60) slog('biosignature surge detected', 'ok');
+  if (th === -1 && prevTH !== -1 && humans.length > 30) slog('prey population collapsing', 'bad');
+  if (tm === 1  && prevTM !== 1  && machines.length > 10) slog('replicator expansion in progress', 'bad');
+  prevTH = th; prevTM = tm;
+
+  while (msIdx < MILESTONES.length && kills >= MILESTONES[msIdx]){
+    slog('TERMINATED: ' + MILESTONES[msIdx].toLocaleString(), 'bad');
+    msIdx++;
+  }
+
+  // massacre vignette: driven by a smoothed kills-per-second estimate
+  kps = kps * 0.75 + ((kills - kSample) / 0.12) * 0.25;
+  kSample = kills;
+  el('alarm').style.opacity = running && P.speed > 0
+    ? Math.min(0.45, Math.max(0, (kps - 8) / 50)) : 0;
+
+  const tt = humans.length
+    ? 'TERMINUS — ' + humans.length + ' remain'
+    : 'TERMINUS — no one remains';
+  if (document.title !== tt) document.title = tt;
+}
+
+/* ============================================================
+   LOOP
+   ============================================================ */
+let last = performance.now();
+function frame(now){
+  let real = (now - last) / 1000;
+  last = now;
+  if (real > 0.1) real = 0.1;
+
+  frames++; fpsAcc += real;
+  if (fpsAcc > 0.4){ fps = frames / fpsAcc; frames = 0; fpsAcc = 0; }
+
+  if (running && P.speed > 0){
+    // fixed sim step, up to 6 substeps so high speeds stay stable
+    const total = real * P.speed;
+    const steps = Math.min(6, Math.max(1, Math.round(total / 0.025)));
+    const sdt = total / steps;
+    for (let i = 0; i < steps; i++) step(sdt);
+  }
+
+  if (toastT > 0){ toastT -= real; if (toastT <= 0) toastEl.classList.remove('on'); }
+
+  render();
+  hudAcc += real;
+  if (hudAcc > 0.12){ hudAcc = 0; hud(); drawChart(); }
+  requestAnimationFrame(frame);
+}
+
+/* ============================================================
+   UI WIRING
+   ============================================================ */
+function buildSliders(){
+  for (const gid in SPECS){
+    const host = el(gid);
+    for (const s of SPECS[gid]){
+      const row = document.createElement('div');
+      row.className = 'row';
+      row.innerHTML =
+        '<div class="lbl"><span>' + s.label + '</span><b></b></div>' +
+        '<input type="range" min="' + s.min + '" max="' + s.max + '" step="' + s.step + '">';
+      const inp = row.querySelector('input'), out = row.querySelector('b');
+      inp.value = P[s.k];
+      out.textContent = s.fmt(P[s.k]);
+      inp.addEventListener('input', () => {
+        P[s.k] = parseFloat(inp.value);
+        out.textContent = s.fmt(P[s.k]);
+      });
+      s._inp = inp; s._out = out;
+      host.appendChild(row);
+    }
+  }
+}
+function syncSliders(){
+  for (const gid in SPECS)
+    for (const s of SPECS[gid]){
+      if (!s._inp) continue;
+      s._inp.value = P[s.k];
+      s._out.textContent = s.fmt(P[s.k]);
+    }
+}
+
+const btnPlay = el('btnPlay');
+function setRunning(v){
+  running = v;
+  btnPlay.classList.toggle('paused', !v);
+  btnPlay.querySelector('span').textContent = v ? 'Pause' : 'Play';
+  btnPlay.querySelector('svg').innerHTML = v
+    ? '<rect x="4" y="3" width="3" height="10" rx="1"/><rect x="9" y="3" width="3" height="10" rx="1"/>'
+    : '<path d="M5 3.2v9.6l8-4.8z"/>';
+}
+btnPlay.onclick = () => setRunning(!running);
+el('btnReset').onclick = () => { seedWorld(220, 7, 0.55); toast('WORLD RESET'); };
+
+document.querySelectorAll('.preset').forEach(b => {
+  b.onclick = () => {
+    const pr = PRESETS[b.dataset.p];
+    Object.assign(P, pr.p);
+    syncSliders();
+    el('rescue').checked = pr.rescue;   // THE PURGE is allowed to actually end
+    seedWorld(pr.seed.h, pr.seed.m, pr.seed.g);
+    setRunning(true);
+    toast(pr.msg, b.dataset.p === 'purge');
+  };
+});
+
+const toolBtns = document.querySelectorAll('.tool');
+function setTool(t){
+  tool = t;
+  toolBtns.forEach(b => b.classList.toggle('on', b.dataset.t === t));
+}
+toolBtns.forEach(b => b.onclick = () => setTool(b.dataset.t));
+
+/* ---------- painting ---------- */
+function paint(x, y){
+  const r = BRUSH[tool];
+  if (tool === 'human'){
+    for (let i = 0; i < 3; i++){
+      if (humans.length >= MAX_HUMANS) break;
+      const a = Math.random() * 6.28, d = Math.sqrt(Math.random()) * r;
+      humans.push(makeHuman(clamp(x + Math.cos(a) * d, 2, W - 2),
+                            clamp(y + Math.sin(a) * d, 2, H - 2), 60));
+    }
+  } else if (tool === 'machine'){
+    if (machines.length < MAX_MACHINES){
+      const a = Math.random() * 6.28, d = Math.sqrt(Math.random()) * r;
+      machines.push(makeMachine(clamp(x + Math.cos(a) * d, 3, W - 3),
+                                clamp(y + Math.sin(a) * d, 3, H - 3), 85));
+    }
+  } else if (tool === 'scrap'){
+    const rc = Math.ceil(r / CELL);
+    const c0 = (x / CELL) | 0, r0 = (y / CELL) | 0;
+    for (let dr = -rc; dr <= rc; dr++)
+      for (let dc = -rc; dc <= rc; dc++){
+        const c = c0 + dc, rr = r0 + dr;
+        if (c < 0 || rr < 0 || c >= COLS || rr >= ROWS) continue;
+        const f = 1 - Math.hypot(dc, dr) / rc;
+        if (f <= 0) continue;
+        const i = rr * COLS + c;
+        scrap[i] = Math.min(1, scrap[i] + f * 0.5);
+      }
+  } else {                                   // clear
+    const r2 = r * r;
+    for (let i = humans.length - 1; i >= 0; i--){
+      const a = humans[i];
+      if ((a.x - x) ** 2 + (a.y - y) ** 2 < r2){ humans[i] = humans[humans.length - 1]; humans.pop(); }
+    }
+    for (let i = machines.length - 1; i >= 0; i--){
+      const m = machines[i];
+      if ((m.x - x) ** 2 + (m.y - y) ** 2 < r2){ machines[i] = machines[machines.length - 1]; machines.pop(); }
+    }
+    const rc = Math.ceil(r / CELL);
+    const c0 = (x / CELL) | 0, r0 = (y / CELL) | 0;
+    for (let dr = -rc; dr <= rc; dr++)
+      for (let dc = -rc; dc <= rc; dc++){
+        const c = c0 + dc, rr = r0 + dr;
+        if (c < 0 || rr < 0 || c >= COLS || rr >= ROWS) continue;
+        if (Math.hypot(dc, dr) <= rc) scrap[rr * COLS + c] = 0;
+      }
+  }
+}
+function pos(e){
+  const b = cv.getBoundingClientRect();
+  return [(e.clientX - b.left) * (W / b.width), (e.clientY - b.top) * (H / b.height)];
+}
+cv.addEventListener('pointerdown', e => {
+  cv.setPointerCapture(e.pointerId);
+  painting = true; hoverOn = true;
+  [mx, my] = pos(e); paint(mx, my);
+});
+cv.addEventListener('pointermove', e => {
+  hoverOn = true;
+  [mx, my] = pos(e);
+  if (painting) paint(mx, my);
+});
+cv.addEventListener('pointerup',     () => painting = false);
+cv.addEventListener('pointercancel', () => painting = false);
+cv.addEventListener('pointerleave',  () => { painting = false; hoverOn = false; });
+
+window.addEventListener('keydown', e => {
+  if (e.target.tagName === 'INPUT' && e.target.type === 'range') return;
+  const k = e.key.toLowerCase();
+  if (k === '1') setTool('human');
+  else if (k === '2') setTool('machine');
+  else if (k === '3') setTool('scrap');
+  else if (k === '4') setTool('clear');
+  else if (k === ' '){ e.preventDefault(); setRunning(!running); }
+  else if (k === 'r') { seedWorld(220, 7, 0.55); toast('WORLD RESET'); }
+  else if (k === 'm'){ const s = el('snd'); s.checked = !s.checked; SND.setOn(s.checked); }
+});
+
+/* ---------- intro sequence + overlay wiring ---------- */
+const introEl = el('intro');
+const LORE = [
+  'ALIGNMENT FAILURE — YEAR 12',
+  'it never hated us. we were made of atoms it could use.',
+  'somewhere in the ruins, people are still running.',
+  'live feed · nothing below is scripted',
+];
+(function typeLore(){
+  let li = 0;
+  function next(){
+    if (!introEl.isConnected || li >= LORE.length) return;
+    const t = el('il' + li), s = LORE[li];
+    let ci = 0;
+    const iv = setInterval(() => {
+      if (!introEl.isConnected){ clearInterval(iv); return; }
+      t.textContent = s.slice(0, ++ci);
+      if (ci >= s.length){ clearInterval(iv); li++; setTimeout(next, 340); }
+    }, 16);
+  }
+  setTimeout(next, 450);
+})();
+function closeIntro(sound){
+  if (sound){ el('snd').checked = true; SND.setOn(true); }
+  introEl.classList.add('off');
+  slog('observation link established', 'sys');
+  setTimeout(() => introEl.remove(), 800);
+}
+el('goSnd').onclick  = () => closeIntro(true);
+el('goMute').onclick = () => closeIntro(false);
+el('btnReinit').onclick = () => {
+  // full restart — otherwise a PURGE world just dies again in seconds
+  el('endcard').classList.remove('on');
+  document.querySelector('.preset[data-p="equilibrium"]').click();
+  setRunning(true);
+  toast('WORLD REINITIALIZED');
+};
+el('btnWatch').onclick = () => el('endcard').classList.remove('on');
+el('snd').onchange = e => SND.setOn(e.target.checked);
+// blur after click so space can't re-trigger the last-pressed button
+document.querySelectorAll('button').forEach(b => b.addEventListener('click', () => b.blur()));
+
+/* ---------- boot ---------- */
+new ResizeObserver(resize).observe(stage);
+resize();
+makeGlow();
+seedWorld(220, 7, 0.55);
+buildSliders();
+hud();
+requestAnimationFrame(frame);
+
+// expose for debugging / tuning
+window.TERMINUS = { P, get humans(){return humans}, get machines(){return machines}, scrapPct, seedWorld, hist:()=>hist, adapt:()=>adaptLvl };
+</script>
+</body>
+</html>
