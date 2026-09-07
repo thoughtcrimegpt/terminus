@@ -1,3 +1,22 @@
+## Playability and feedback pass
+
+- Kept simulation area stable across desktop and phone layouts; resizing conserves populations and maps resource caches to their corresponding positions.
+- Added targeting population counts, deployment outcome reports, and visible objective progress.
+- Added refuge occupancy, integrity, and reserve-time labels.
+- Checked long-run pacing in two deterministic seeds on desktop and phone sizes.
+
+# Terminus II, September 2026
+
+- Rebuilt the observation interface with responsive command controls, inspection, telemetry, field guide, and simulation parameter dialogs.
+- Added detailed environment art, animated unit roles, machine classes, volumetric-style lighting and mist, scanning effects, and storm visuals.
+- Added power-limited refuge domes, EMP strikes, ghost signals, and supply drops.
+- Added survivor roles, machine classes, refuge repair and damage, ion storms, and three optional field objectives.
+- Preserved the original scenarios, resource/prey/predator loop, brushes, live tuning, procedural sound, adaptation, and extinction flow.
+- Extracted the former single-file source into classic scripts and local styles/assets. Opening index.html still works without a build.
+- Fixed modal/intro shortcut handling, scenario reset consistency, spatial target checks, and intervention/objective edge cases.
+
+---
+
 # TERMINUS — patch notes
 
 ## v1.0.1 — 2026-07-28
