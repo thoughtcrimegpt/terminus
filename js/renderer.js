@@ -89,6 +89,18 @@
   function drawOps(t) {
     const op = typeof OPS==='object' ? OPS : null; if(!op) return;
     for(const s of (op.shelters||[])){ const life=clamp((s.life??s.maxLife??1)/(s.maxLife||1),0,1), r=s.r||62; if(glowTeal)ctx.drawImage(glowTeal,s.x-34,s.y-34); ctx.save(); ctx.translate(s.x,s.y); ctx.strokeStyle='rgba(53,201,174,'+(0.34+life*.4)+')'; ctx.lineWidth=1.5; ctx.beginPath(); for(let i=0;i<6;i++){const a=i*TAU/6-Math.PI/6; const x=Math.cos(a)*r,y=Math.sin(a)*r; i?ctx.lineTo(x,y):ctx.moveTo(x,y);} ctx.closePath(); ctx.stroke(); ctx.fillStyle='rgba(53,201,174,.055)'; ctx.fill(); ctx.setLineDash([5,7]); ctx.beginPath();ctx.arc(0,0,r*.86,-t*.25,t*-.25+TAU*.7);ctx.stroke();ctx.setLineDash([]);ctx.fillStyle='#c7fff0';ctx.fillRect(-2,-r*.5,4,r*.5);ctx.strokeStyle='rgba(191,255,239,.5)';ctx.beginPath();ctx.arc(0,-r*.5,4,0,TAU);ctx.stroke();ctx.strokeStyle='rgba(53,201,174,.55)';ctx.beginPath();ctx.arc(0,0,r+5,-Math.PI/2,-Math.PI/2+TAU*clamp(s.hp/100,0,1));ctx.stroke();ctx.restore(); }
+    // Refuge status stays attached to its actual footprint so repairs and expiry are legible.
+    const labelScale=Math.max(1,W/stage.clientWidth);
+    ctx.save(); ctx.font=(8*labelScale)+'px ui-monospace,monospace';ctx.textAlign='center';
+    for(const sh of (op.shelters||[])) {
+      const occupants=humans.reduce((n,h)=>n+(!h.dead&&h.e>0&&(h.x-sh.x)**2+(h.y-sh.y)**2<=sh.r*sh.r?1:0),0);
+      const x=clamp(sh.x,76*labelScale,W-76*labelScale),y=clamp(sh.y+sh.r+14*labelScale,94*labelScale,H-42*labelScale);
+      ctx.fillStyle='rgba(8,22,26,.86)';ctx.fillRect(x-68*labelScale,y-10*labelScale,136*labelScale,24*labelScale);
+      ctx.fillStyle=sh.hp<30?'#ed9e89':'#add7c5';
+      ctx.fillText(occupants+' sheltered · '+Math.max(0,Math.round(sh.hp))+'% integrity',x,y-labelScale);
+      ctx.fillStyle='#86a69e';ctx.fillText(Math.max(0,Math.ceil(sh.life))+'s reserve',x,y+9*labelScale);
+    }
+    ctx.restore();
     for(const b of (op.beacons||[])){ const life=clamp((b.life??b.maxLife??1)/(b.maxLife||1),0,1), r=b.r||135, lure=b.type==='lure'; if(glowAmber)ctx.drawImage(glowAmber,b.x-26,b.y-26);ctx.strokeStyle=(lure?'rgba(255,145,102,':'rgba(255,215,163,')+(life*.32)+')';ctx.lineWidth=1;ctx.setLineDash(lure?[2,8]:[2,6]);ctx.beginPath();ctx.arc(b.x,b.y,r,0,TAU);ctx.stroke();ctx.setLineDash([]);ctx.fillStyle=lure?'#ff9166':'#ffd7a3';ctx.fillRect(b.x-2,b.y-2,4,4); }
     for(const p of (op.pulses||[])){ const k=1-clamp((p.t??0)/(p.maxT||1),0,1), r=(p.r||110)*(1-k)+8, emp=p.type==='emp'; ctx.strokeStyle=(emp?'rgba(105,191,255,':'rgba(53,201,174,')+(k*.65)+')';ctx.lineWidth=emp?2.5:2;ctx.beginPath();ctx.arc(p.x,p.y,r,0,TAU);ctx.stroke(); }
   }

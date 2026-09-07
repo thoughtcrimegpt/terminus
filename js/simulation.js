@@ -6,6 +6,7 @@
    scrap (resource) -> survivors (prey) -> machines (predator)
    ============================================================ */
 
+const WORLD_AREA = 720000;    // fixed resource/encounter area across desktop and phone layouts
 const CELL = 11;              // world grid cell size in px
 const MAX_HUMANS  = 4000;
 const MAX_MACHINES = 900;
@@ -90,7 +91,7 @@ let fps = 60, frames = 0, fpsAcc = 0;
 const OPS = {
   credits: 100, maxCredits: 100, shelters: [], beacons: [], pulses: [], storm: false,
   stormTime: 0, nextStorm: 50, rescued: 0, objectiveIndex: 0, empHits: 0, stormWarned: false,
-  objectives: [], milestones: [],
+  objectives: [], milestones: [], lastAction: null,
 };
 const COMMANDS = {
   shelter: { cost: 40, radius: 62, life: 75, cooldown: 1.8 },
@@ -146,22 +147,26 @@ function resize(){
   const rect = stage.getBoundingClientRect();
   const oldW = W, oldH = H;
   DPR = Math.min(window.devicePixelRatio || 1, 2);
-  W = Math.max(200, Math.round(rect.width));
-  H = Math.max(160, Math.round(rect.height));
-  cv.width  = Math.round(W * DPR);
-  cv.height = Math.round(H * DPR);
-  ctx.setTransform(DPR, 0, 0, DPR, 0, 0);
+  const displayW = Math.max(200, rect.width), displayH = Math.max(160, rect.height);
+  const aspect = displayW / displayH;
+  W = Math.round(Math.sqrt(WORLD_AREA * aspect));
+  H = Math.round(WORLD_AREA / W);
+  // Physics use stable world units; the backing canvas uses actual display pixels.
+  cv.width = Math.round(displayW * DPR);
+  cv.height = Math.round(displayH * DPR);
+  ctx.setTransform(cv.width / W, 0, 0, cv.height / H, 0, 0);
 
   const nc = Math.max(4, Math.ceil(W / CELL)), nr = Math.max(4, Math.ceil(H / CELL));
   const ns = new Float32Array(nc * nr);
   if (scrap.length){
-    // Tile the old grid into the new one. A straight overlap-copy would leave every
-    // newly exposed cell at zero, so growing the window carved out a dead zone that
-    // only crept back at the 0.06 cold-start regrowth rate. Tiling keeps both the
-    // density and the clumpy texture, and degrades to a plain copy when shrinking.
-    for (let r = 0; r < nr; r++)
-      for (let c = 0; c < nc; c++)
-        ns[r * nc + c] = scrap[(r % ROWS) * COLS + (c % COLS)];
+    // Keep caches at their normalized district positions as the view changes shape.
+    for (let r = 0; r < nr; r++) {
+      const oldRow=Math.min(ROWS-1,Math.floor((r+.5)*oldH/H));
+      for (let c = 0; c < nc; c++) {
+        const oldCol=Math.min(COLS-1,Math.floor((c+.5)*oldW/W));
+        ns[r*nc+c]=scrap[oldRow*COLS+oldCol];
+      }
+    }
   } else {
     for (let i = 0; i < ns.length; i++) ns[i] = Math.random() < .55 ? rnd(.3, 1) : 0;
   }
@@ -208,7 +213,7 @@ function seedWorld(h, m, g){
   simTime = 0; kills = 0; hist = []; sampleAcc = 0;
   OPS.credits = OPS.maxCredits; OPS.shelters.length = 0; OPS.beacons.length = 0;
   OPS.pulses.length = 0; OPS.storm = false; OPS.stormTime = 0; OPS.nextStorm = 50;
-  OPS.rescued = 0; OPS.survivalTime = 0; OPS.objectiveIndex = 0; OPS.empHits = 0; OPS.stormWarned = false; OPS.milestones.length = 0;
+  OPS.rescued = 0; OPS.survivalTime = 0; OPS.lastAction = null; OPS.objectiveIndex = 0; OPS.empHits = 0; OPS.stormWarned = false; OPS.milestones.length = 0;
   OPS.objectives = [
     {id:'refuge', title:'Establish a refuge', detail:'Shelter 10 living survivors', progress:0, done:false},
     {id:'emp', title:'Disrupt the fleet', detail:'EMP 3 machines cumulatively', progress:0, done:false},
@@ -324,11 +329,22 @@ function updateObjectives(dt = 0){
 }
 
 function distance2(a, b, x, y){ const dx = a.x - x, dy = a.y - y; return dx * dx + dy * dy <= b * b; }
+// One read-only footprint calculation shared by targeting feedback and deployment reports.
+function commandImpact(type, x, y) {
+  if (!['shelter','emp','lure','supply'].includes(type) || !Number.isFinite(x) || !Number.isFinite(y)) return null;
+  const c=COMMANDS[type]; x=clamp(x,4,W-4); y=clamp(y,4,H-4);
+  let people=0, units=0;
+  for(const h of humans) if(!h.dead && h.e>0 && distance2(h,c.radius,x,y)) people++;
+  for(const m of machines) if(m.e>0 && distance2(m,c.radius,x,y)) units++;
+  return {people,units,cost:c.cost,radius:c.radius};
+}
+
 function intervene(type, x, y){
   if (!['shelter','emp','lure','supply'].includes(type)) return false;
   const c = COMMANDS[type];
   if (!c || !Number.isFinite(x) || !Number.isFinite(y)) return false;
   if (commandReady[type] > 0 || OPS.credits < c.cost) { toast(commandReady[type] > 0 ? 'TOOL RECHARGING' : 'INSUFFICIENT OPS CREDITS', true); return false; }
+  const impact = commandImpact(type,x,y);
   x = clamp(x, 4, W - 4); y = clamp(y, 4, H - 4); OPS.credits -= c.cost; commandReady[type] = c.cooldown;
   if (type === 'shelter') OPS.shelters.push({x, y, r:62, hp:100, life:75, maxLife:75});
   if (type === 'lure') OPS.beacons.push({x, y, r:135, life:20, maxLife:20, type:'lure'});
@@ -345,13 +361,19 @@ function intervene(type, x, y){
   }
   if (type === 'emp'){
     let hit = 0;
-    for (const m of machines) if (distance2(m, c.radius, x, y)){ m.disabled = Math.max(m.disabled || 0, 8); hit++; }
+    for (const m of machines) if (m.e > 0 && distance2(m, c.radius, x, y)){ m.disabled = Math.max(m.disabled || 0, 8); hit++; }
     OPS.empHits += hit;
     OPS.milestones.push({type:'emp', count:hit, time:simTime});
     if (OPS.milestones.length > 30) OPS.milestones.shift();
     OPS.pulses.push({x, y, r:110, t:0, maxT:.65, type:'emp'});
   } else if (type === 'shelter') OPS.pulses.push({x, y, r:62, t:0, maxT:.65, type:'shelter'});
-  toast(type.toUpperCase() + ' DEPLOYED', false); SND.deploy(); return true;
+  const noun=(count,one,many)=>count+' '+(count===1?one:many);
+  const report = type==='shelter' ? 'Refuge online · '+noun(impact.people,'survivor','survivors')+' in range'
+    : type==='emp' ? 'EMP strike · '+noun(impact.units,'machine','machines')+' disabled for 8s'
+    : type==='lure' ? 'Ghost signal · '+noun(impact.units,'machine','machines')+' in range'
+    : 'Supplies delivered · '+noun(impact.people,'survivor','survivors')+' in range';
+  OPS.lastAction={type,time:simTime,text:report,people:impact.people,units:impact.units};
+  toast(report,false); slog(report,'ok'); SND.deploy(); return true;
 }
 
 function updateScrap(dt){
@@ -1246,7 +1268,7 @@ requestAnimationFrame(frame);
 // expose for debugging / tuning
 window.TERMINUS = {
   P, get humans(){return humans}, get machines(){return machines}, scrapPct, seedWorld, hist:()=>hist, adapt:()=>adaptLvl,
-  get ops(){return OPS}, get commands(){return COMMANDS}, setTool, intervene, step, setRunning, selectScenario(name){
+  get ops(){return OPS}, get commands(){return COMMANDS}, setTool, intervene, commandImpact, step, setRunning, selectScenario(name){
     return applyScenario(name);
   }, state(){ return {time:simTime, kills, running, scenario:selectedScenario, W, H, humans:humans.length, machines:machines.length, scrap:scrapPct(), ops:OPS}; }
 };

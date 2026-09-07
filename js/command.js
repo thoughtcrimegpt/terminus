@@ -14,7 +14,7 @@
     supply: ['Supply drop · 25 power', 'Click to replenish nearby resources and survivor energy.']
   };
   let selected = null, selectedType = null, lastTool = '', lastMissions = '', lastScenario = '';
-  let modalResume = false;
+  let modalResume = false, lastReport = null;
   function modalOpen(id) {
     if (document.querySelector('dialog[open]')) return;
     modalResume = running;
@@ -97,6 +97,12 @@
       $('toolName').textContent=info[0];$('toolDescription').textContent=info[1];
       document.querySelectorAll('.tool').forEach(b=>b.setAttribute('aria-pressed',String(b.dataset.t===tool)));
       lastTool=tool;
+      lastReport=OPS.lastAction;
+    }
+    if (OPS.lastAction && OPS.lastAction!==lastReport) {
+      $('toolDescription').textContent=OPS.lastAction.text;lastReport=OPS.lastAction;
+    } else if (!OPS.lastAction && lastReport) {
+      $('toolDescription').textContent=(toolCopy[tool]||toolCopy.inspect)[1];lastReport=null;
     }
     document.querySelectorAll('.command').forEach(b=>{
       const c=COMMANDS[b.dataset.t], cooldown=typeof commandReady==='object'?commandReady[b.dataset.t]:0;
@@ -108,9 +114,26 @@
       {title:'Break the hunting network',detail:'Disable 3 machines with EMP strikes.',done:false},
       {title:'Outlast the silence',detail:'Keep human signals alive for 2 minutes.',done:false}
     ];
-    const markup=objectives.map((o,i)=>'<div class="mission-row '+(o.done?'complete':'')+'"><span class="mission-marker">'+(o.done?'✓':String(i+1).padStart(2,'0'))+'</span><div><b>'+o.title+'</b><p>'+o.detail+'</p></div></div>').join('');
+    const markup=objectives.map((o,i)=>{
+      const progress=Math.max(0,Math.min(1,o.progress||0));
+      const value=o.done?'Complete':o.id==='refuge'?Math.round(progress*10)+' / 10 sheltered'
+        :o.id==='emp'?Math.min(3,OPS.empHits)+' / 3 disabled':Math.floor(OPS.survivalTime||0)+' / 120s alive';
+      return '<div class="mission-row '+(o.done?'complete':'')+'"><span class="mission-marker">'+(o.done?'✓':String(i+1).padStart(2,'0'))+'</span><div class="mission-content"><b>'+o.title+'</b><p>'+o.detail+'</p><div class="mission-meter" role="progressbar" aria-label="'+o.title+'" aria-valuenow="'+Math.round(progress*100)+'" aria-valuemin="0" aria-valuemax="100"><i style="width:'+(progress*100)+'%"></i></div><span class="mission-value">'+value+'</span></div></div>';
+    }).join('');
     if (markup!==lastMissions) {$('missionList').innerHTML=markup;lastMissions=markup;}
     $('objectiveProgress').textContent=objectives.filter(o=>o.done).length+' / '+objectives.length;
+    const targeting=hoverOn && ['shelter','emp','lure','supply'].includes(tool);
+    const preview=$('targetPreview');preview.hidden=!targeting;
+    if(targeting) {
+      const impact=commandImpact(tool,mx,my), cd=commandReady[tool];
+      const units=tool==='emp'||tool==='lure';
+      const count=units?impact.units:impact.people;
+      const effect=count+' '+(units?(count===1?'machine':'machines'):(count===1?'survivor':'survivors'))+' in range';
+      const paused=!running||P.speed===0;
+      const readiness=cd>0?(paused?'Paused · resume to recharge':'Recharging '+cd.toFixed(1)+'s'):OPS.credits<impact.cost?(paused?'Paused · resume to restore power':'Need '+Math.ceil(impact.cost-OPS.credits)+' more power'):impact.cost+' power · click to deploy';
+      preview.textContent=effect+' / '+readiness;
+      preview.classList.toggle('unavailable',cd>0||OPS.credits<impact.cost);
+    }
     updateInspector();
   }
   refresh();setInterval(refresh,200);

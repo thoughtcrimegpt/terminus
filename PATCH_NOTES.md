@@ -1,3 +1,10 @@
+## Playability and feedback pass
+
+- Kept simulation area stable across desktop and phone layouts; resizing conserves populations and maps resource caches to their corresponding positions.
+- Added targeting population counts, deployment outcome reports, and visible objective progress.
+- Added refuge occupancy, integrity, and reserve-time labels.
+- Checked long-run pacing in two deterministic seeds on desktop and phone sizes.
+
 # Terminus II, September 2026
 
 - Rebuilt the observation interface with responsive command controls, inspection, telemetry, field guide, and simulation parameter dialogs.

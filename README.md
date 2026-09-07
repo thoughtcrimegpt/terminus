@@ -26,6 +26,10 @@ Then open http://127.0.0.1:8767. No build step or runtime dependencies. Keep the
 - **Ion storms:** a warning precedes each storm. Storms last 12 seconds and reduce machine sight and resource regrowth. There are 50 seconds of clear conditions between storms.
 - **Field objectives:** shelter 10 living survivors at once, affect 3 machines cumulatively with EMP, and maintain human life for 120 uninterrupted simulation seconds. Extinction resets the survival interval. Completed objectives stay complete until world reset.
 
+Before deploying, the world preview reports how many agents are in range and whether power/cooldown permits the command. Deployment reports state the result, refuges display occupancy/integrity/reserve time, and field objectives show live progress.
+
+World area stays fixed at approximately 720,000 simulation units regardless of window size. The aspect ratio reshapes the view; agents and resource caches follow their normalized positions when it changes. This prevents a narrow screen from crowding the same population into a smaller ecosystem.
+
 Power regenerates at 1.25 units per simulation second, up to 100. Each intervention has a short cooldown. A command deploys once per click or touch, while the ecosystem brushes support dragging. Interventions can be placed while paused; their timers advance with simulation time.
 
 ## Scenarios

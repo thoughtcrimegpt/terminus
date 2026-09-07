@@ -190,6 +190,34 @@ test('single command placement on drag and modal shortcuts stay paused', async p
   await page.keyboard.press('Escape');
 });
 
+test('viewport changes preserve simulation area and population', async page => {
+  await fresh(page,50,7);
+  const mobile=await page.evaluate(()=>({area:W*H,people:humans.length,units:machines.length}));
+  await page.setViewportSize({width:1512,height:1100});await settle(page,180);
+  const desktop=await page.evaluate(()=>({area:W*H,people:humans.length,units:machines.length}));
+  assert.ok(Math.abs(desktop.area/mobile.area-1)<.002);
+  assert.equal(desktop.people,mobile.people);assert.equal(desktop.units,mobile.units);
+});
+
+test('target feedback predicts impact without spending and reports objective progress', async page => {
+  await fresh(page,12,3);
+  const result=await page.evaluate(()=>{
+    for(const h of humans){h.x=W/2;h.y=H/2;h.e=60;}
+    for(const m of machines){m.x=W/2;m.y=H/2;m.e=100;}
+    const credits=OPS.credits,impact=TERMINUS.commandImpact('emp',W/2,H/2);
+    const unchanged=OPS.credits===credits;
+    intervene('emp',W/2,H/2);const report=OPS.lastAction.text;
+    intervene('shelter',W/2,H/2);step(.025);
+    return{unchanged,impact,report};
+  });
+  assert.equal(result.unchanged,true);assert.equal(result.impact.units,3);assert.match(result.report,/3 machines disabled for 8s/);
+  await settle(page,250);assert.equal(await page.locator('.mission-row.complete').count(),2);
+  assert.equal(await page.locator('[role="progressbar"]').count(),3);
+  await page.evaluate(()=>setTool('emp'));const b=await point(page);await page.mouse.move(b.x+b.width/2,b.y+b.height/2);await settle(page,250);
+  assert.match(await page.locator('#targetPreview').textContent(),/3 machines in range/);
+  await fresh(page,0,0);assert.equal(await page.evaluate(()=>OPS.lastAction),null);
+});
+
 async function main() {
   const browser = await chromium.launch({ headless: true, executablePath, args: ['--disable-gpu'] });
   const page = await browser.newPage({ viewport: { width: 1280, height: 900 } });
