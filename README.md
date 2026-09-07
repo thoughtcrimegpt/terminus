@@ -1,77 +1,81 @@
-# TERMINUS
+# TERMINUS II
 
-A living predator–prey ecosystem, set after the singularity.
+**After the alignment.** A cinematic, interactive post-singularity ecosystem.
 
-**scrap → survivors → machines**
+Resources sustain survivors. Survivors sustain machines. Observe the cycle, inspect individual agents, or spend regenerating power to change their odds.
 
-Three trophic levels, one closed loop. Scrap caches replenish in the ruins. Survivors forage
-the scrap and breed. Machines hunt the survivors and replicate. Nothing is scripted — every
-boom, famine and collapse on the chart falls out of the agent rules.
+## Play locally
 
-Single self-contained HTML file. No build step, no dependencies, no network calls.
-Open `index.html` in a browser.
+Open `index.html` directly in a modern browser, or serve this directory:
 
-## What it does
+```sh
+python3 -m http.server 8767 --bind 127.0.0.1
+```
 
-- **Live Lotka–Volterra dynamics.** Survivors peak, machines peak ~15s later, survivors crash,
-  machines starve, scrap recovers, and the cycle restarts. It oscillates indefinitely at the
-  default settings.
-- **Drop things in.** Paint survivors, machines, or scrap straight onto the world, or wipe a
-  region clear. The sim absorbs it and re-stabilises.
-- **Everything is tunable live** — metabolism, breeding cost, forage speed, prey yield, sight
-  range, resupply rate — with a rolling population chart underneath.
+Then open http://127.0.0.1:8767. No build step or runtime dependencies. Keep the `js`, `css`, `assets`, and `icons` folders beside the HTML file. The image, styles, scripts and audio are local; only the existing GoatCounter analytics on GitHub Pages makes a network request.
 
-## Two mechanics that aren't just predator/prey
+## What's new
 
-- **Panic.** Survivors sense machines inside their panic range and flee, running faster than
-  they forage but burning energy to do it. Panic range is deliberately shorter than machine
-  sight range, so machines usually see first.
-- **Concealment.** Dense scrap is cover. A survivor standing in a rich cache is harder to
-  detect, which shortens a machine's effective sight range. Food and safety occupy the same
-  ground, so survivors are pushed toward exactly where the machines patrol.
+- A detailed District 07 environment, layered with real-time cloaked survivors, differentiated machine silhouettes, scan cones, lighting, fog, weather, kill effects, and refuge shields. Procedural terrain remains the fallback if the environment image cannot load.
+- A command center with population telemetry, scenario selection, agent inspection, optional objectives, an event feed, configurable atmosphere, reduced motion, and fullscreen observation.
+- **Refuge domes:** cost 40 power, radius 62, last up to 75 simulation seconds. Reduce survivor energy drain and conceal occupants from machines. Hungry survivors are attracted to reachable refuges. Engineers repair them; nearby machines damage them, with titans dealing more damage.
+- **EMP strikes:** cost 30 power, radius 110. Disable affected machines for 8 simulation seconds. Disabled machines cannot move or hunt and consume less energy.
+- **Ghost signals:** cost 20 power, radius 135, last 20 seconds. Nearby machines prioritize the nearest active decoy over prey.
+- **Supply drops:** cost 25 power, radius 90. Immediately replenish resources radially and restore nearby survivor energy, followed by a short resupply effect.
+- **Roles:** scavengers forage faster, medics transfer some of their own energy to nearby survivors, and engineers repair occupied refuges. Scouts see farther and move faster, hunters are balanced, and titans move slowly but gain more from prey and attack refuges harder.
+- **Ion storms:** a warning precedes each storm. Storms last 12 seconds and reduce machine sight and resource regrowth. There are 50 seconds of clear conditions between storms.
+- **Field objectives:** shelter 10 living survivors at once, affect 3 machines cumulatively with EMP, and maintain human life for 120 uninterrupted simulation seconds. Extinction resets the survival interval. Completed objectives stay complete until world reset.
 
-## The feed
-
-The page opens as a "live feed" — a short typed transmission, then the world. Extras that
-make it read like surveillance footage rather than a toy:
-
-- **Self-improvement.** The machines' threat model versions up as terminations accumulate
-  (v1.0 → v2.2 max): each level quietly buys them more sight, more pursuit speed and a lower
-  metabolism. The equilibrium you're watching is slowly being negotiated away. Toggle it off
-  in the MACHINES panel for a pure fixed-parameter ecosystem.
-- **System log.** A cold event feed in the corner of the stage — threat model updates,
-  termination milestones, population collapse warnings, extinction notices.
-- **Corpses.** Kills leave fallen figures that litter the field and fade over ~30 seconds.
-  The red vignette pulse tracks the live kill rate.
-- **Extinction.** With auto-rescue off, humanity hitting zero ends the feed: a glitching
-  end-card with time survived, total terminated, and the final threat model version.
-  THE PURGE preset disables auto-rescue so it's allowed to actually finish.
-- **Sound.** Procedural WebAudio — a low ambient drone plus kill ticks, all generated,
-  no assets. Enabled from the intro or the `M` key. The tab title tracks the living
-  ("TERMINUS — 214 remain").
-
-## Controls
-
-| | |
-|---|---|
-| `1` `2` `3` `4` | Human / Machine / Scrap / Clear brush |
-| click + drag | paint into the world |
-| `space` | pause |
-| `R` | reset |
-| `M` | sound on/off |
+Power regenerates at 1.25 units per simulation second, up to 100. Each intervention has a short cooldown. A command deploys once per click or touch, while the ecosystem brushes support dragging. Interventions can be placed while paused; their timers advance with simulation time.
 
 ## Scenarios
 
-- **EQUILIBRIUM** — the default oscillation. Neither side wins.
-- **THE PURGE** — wide-sighted, low-metabolism machines with almost no cover to hide in.
-  Survivors are wiped out in roughly fifteen seconds and only persist via auto-rescue.
-- **REWILD** — no machines at all. Survivors grow logistically, overshoot the carrying
-  capacity of the scrap, and mass-starve on their own. Then drop a single machine in.
+- **Equilibrium:** an evolving resource/prey/predator cycle with auto-rescue enabled. Roles and interventions influence its balance.
+- **The purge:** aggressive machines and no auto-rescue. Human extinction ends the feed; you can reinitialize or keep observing.
+- **Rewild:** begins without machines. Survivors compete for resources. Machines remain absent until you introduce them.
 
-## Notes
+Reset restores the selected scenario's parameters and auto-rescue setting. The original live parameter sliders remain under **Parameters**, including metabolism, breeding energy, forage, panic, concealment, machine sight and pursuit, resupply and simulation speed.
 
-Auto-rescue only restores a species that has actually existed since the last reset, so REWILD
-stays machine-free until you place one yourself.
+## Controls
 
-Agents are capped at 4000 survivors / 900 machines. Neighbour lookups go through a spatial
-hash and the scrap grid is drawn in batched passes, so it holds 60+ fps at the caps.
+| Control | Action |
+| --- | --- |
+| `0` | Inspect a nearby agent |
+| `1` / `2` / `3` / `4` | Human / machine / resource / clear brush |
+| `5` / `6` / `7` / `8` | Refuge / EMP / ghost signal / supply |
+| Click or touch | Inspect or deploy the selected command |
+| Click and drag | Paint with an ecosystem brush |
+| Space | Pause or resume |
+| `R` | Reset the current scenario |
+| `M` | Toggle procedural audio |
+| `?` | Field guide |
+
+Help and parameter dialogs pause the simulation. The initial briefing starts paused. Switching away from the tab pauses it as well. All tools also have on-screen buttons.
+
+## World model
+
+The environment artwork is decorative. Agents move freely in 2D; buildings are not collision obstacles. The resource grid, spatial agent rules, energy, breeding, predation, concealment, adaptation, storms and interventions are simulated. There is no scripted winner. Free brushes and parameter overrides remain available, including after completing field objectives.
+
+Population caps are 4,000 humans and 900 machines. Lookups use a spatial hash. Rendering caches terrain and glow textures, caps ambient effects, and offers reduced atmospheric detail. Performance depends on viewport, hardware, population and simulation speed.
+
+## Source layout
+
+- `index.html`: accessible command center, dialogs and mobile layout shell.
+- `css/terminus.css`: responsive visual design.
+- `js/simulation.js`: state, agent rules, spatial hash, interventions, scenarios, audio and base rendering helpers.
+- `js/renderer.js`: cinematic world rendering and procedural fallback.
+- `js/command.js`: presentation, inspection and command-center controls.
+- `assets/district-07.png`: generated environment art. See `assets/ART_DIRECTION.md` for the exact prompt and provenance.
+- `tests/smoke.cjs`: browser integration checks.
+
+The scripts intentionally use classic script loading so local file opening works without module/CORS setup. `window.TERMINUS` exposes state and deterministic stepping for tests and tuning. `window.TerminusRenderer` exposes quality and reduced-motion settings.
+
+## Verification
+
+Install Playwright in a development environment, then run:
+
+```sh
+node tests/smoke.cjs
+```
+
+The test runner supports local browser/runtime configuration documented at the top of the script. A server must be running at the test URL. This is a test-only dependency, not a game runtime dependency.
