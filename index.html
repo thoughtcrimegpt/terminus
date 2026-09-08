@@ -75,5 +75,15 @@
 <script src="js/simulation.js"></script>
 <script src="js/renderer.js"></script>
 <script src="js/command.js"></script>
+<script type="module">
+// Count visits to the published site, excluding local development.
+if (location.hostname === "thoughtcrimegpt.github.io") {
+  const beacon = document.createElement("script");
+  beacon.type = "module";
+  beacon.src = "https://static.cloudflareinsights.com/beacon.min.js";
+  beacon.dataset.cfBeacon = JSON.stringify({ token: "2c4f7d39d7bc411db871455d97f72ecd" });
+  document.body.appendChild(beacon);
+}
+</script>
 </body>
 </html>

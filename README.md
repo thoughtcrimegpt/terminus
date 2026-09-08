@@ -12,7 +12,7 @@ Open `index.html` directly in a modern browser, or serve this directory:
 python3 -m http.server 8767 --bind 127.0.0.1
 ```
 
-Then open http://127.0.0.1:8767. No build step or runtime dependencies. Keep the `js`, `css`, `assets`, and `icons` folders beside the HTML file. The image, styles, scripts and audio are local; only the existing GoatCounter analytics on GitHub Pages makes a network request.
+Then open http://127.0.0.1:8767. No build step or runtime dependencies. Keep the `js`, `css`, `assets`, and `icons` folders beside the HTML file. The image, styles, scripts and audio are local; GoatCounter and Cloudflare Web Analytics make analytics requests on GitHub Pages. Cloudflare tracking runs only on `thoughtcrimegpt.github.io`.
 
 ## What's new
 
